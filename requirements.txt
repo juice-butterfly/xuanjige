@@ -1,0 +1,25 @@
+# 玄机阁 主服务依赖
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.0
+httpx>=0.27
+lunar-python>=1.0.28
+# 用户认证依赖（玄机阁 个人档案）
+PyJWT>=2.8
+bcrypt>=4.1
+
+# 云端持久化（设 MONGODB_URI 时启用，未设则回退本地 JSON）
+pymongo>=4.6
+
+# 印占引擎依赖（vedic-calculator 基于 PyJHora）
+# 注意：pysweph 为 C 扩展，需 Python 3.8~3.13；星历文件 .se1 已内置于 vedic/ephe/
+# 钉死与本地一致的版本，确保 C 扩展 ABI 和星历文件格式匹配
+pysweph==2.10.3.6
+PyJHora==4.8.6
+pytz==2025.2
+numpy
+geocoder
+geopy
+requests
+timezonefinder
+python-dateutil
