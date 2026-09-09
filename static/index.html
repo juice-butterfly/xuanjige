@@ -1,0 +1,2439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>玄机阁 · 中西合参</title>
+<style>
+  :root{
+    --bg:#161311; --panel:#1f1a16; --panel2:#262019; --panel3:#2f2820; --line:#3a3128;
+    --gold:#c9a86a; --gold-dim:#8a744d; --text:#e8e0d2; --muted:#9c917f;
+    --red:#b5543f; --green:#6f8f5f;
+    --accent:#c9a86a;  /* 同 --gold，给现有老代码用 */
+    /* 五行配色（国风深底下的高可读色） */
+    --wu-jin:#e8e0d2;   /* 金 · 白 */
+    --wu-mu:#8fb573;    /* 木 · 绿 */
+    --wu-shui:#7fa8c9;  /* 水 · 蓝 */
+    --wu-huo:#d0785a;   /* 火 · 红 */
+    --wu-tu:#c9a86a;    /* 土 · 黄 */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text); min-height:100vh;
+    font-family:"Noto Serif SC","Songti SC","SimSun",serif;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  header{padding:28px 0 10px;text-align:center}
+  header h1{font-size:26px;letter-spacing:10px;color:var(--gold);font-weight:500}
+  header p{color:var(--muted);font-size:13px;margin-top:8px;letter-spacing:3px}
+  footer{
+    width:100%;text-align:center;padding:14px 20px 26px;
+    font-size:12px;color:var(--muted);letter-spacing:1px;
+    border-top:1px solid var(--line);margin-top:10px;
+  }
+  .wrap{width:min(720px,94vw);margin:14px auto 90px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:16px}
+  .panel h2{font-size:15px;color:var(--gold);letter-spacing:4px;margin-bottom:16px;font-weight:500}
+  .mode-tabs{display:flex;gap:8px;margin-bottom:18px}
+  .mode-tab{
+    flex:1;padding:10px 0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;letter-spacing:2px;
+  }
+  .mode-tab.active{background:var(--gold);color:#241d12;border-color:var(--gold);font-weight:500}
+  .vedic-lagna{text-align:center;padding:10px 0 16px;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .vedic-lagna .big{font-size:22px;color:var(--gold);letter-spacing:2px}
+  .vedic-lagna .sub{font-size:12px;color:var(--muted);margin-top:6px}
+  .vedic-planets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .vplanet{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 6px;text-align:center}
+  .vplanet .pn{font-size:12px;color:var(--gold);margin-bottom:4px}
+  .vplanet .ps{font-size:12px;color:var(--text)}
+  .vplanet .ph{font-size:11px;color:var(--muted);margin-top:2px}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:2px}
+  .field input,.field select{
+    width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;
+  }
+  .field input:focus,.field select:focus{outline:none;border-color:var(--gold-dim)}
+  .check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:14px}
+  .check input{accent-color:var(--gold)}
+  button.primary{
+    margin-top:20px;width:100%;padding:12px;border:none;border-radius:8px;cursor:pointer;
+    background:var(--gold);color:#241d12;font-size:15px;letter-spacing:6px;font-family:inherit;font-weight:500;
+  }
+  button.primary:hover{filter:brightness(1.08)}
+  button.primary:disabled{opacity:.5;cursor:wait}
+  .chart-card{display:none}
+  .pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center}
+  .pillar{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 6px}
+  .pillar .t{font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:10px}
+  .pillar .gz{font-size:26px;letter-spacing:2px;line-height:1.25;font-weight:500}
+  .pillar .gz .g{display:block}
+  .pillar .gz .z{display:block}
+  .pillar .n{font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:1px}
+  /* 日主主视觉 */
+  .day-master{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:14px;padding:12px;background:var(--panel2);border:1px solid var(--gold-dim);border-radius:10px}
+  .day-master .dm-label{font-size:12px;color:var(--muted);letter-spacing:2px}
+  .day-master .dm-big{font-size:30px;font-weight:500;letter-spacing:2px;line-height:1}
+  .day-master .dm-sub{font-size:12px;color:var(--muted);letter-spacing:1px;margin-top:4px}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .tag{font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:4px 12px}
+  .tag b{color:var(--gold);font-weight:500}
+  .bars{margin-top:14px;display:grid;gap:6px}
+  .bar-row{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+  .bar-track{flex:1;height:6px;background:var(--panel2);border-radius:3px;overflow:hidden}
+  .bar-fill{height:100%;background:var(--gold-dim)}
+  /* chat */
+  #chat{display:none}
+  #msgs{display:flex;flex-direction:column;gap:14px;max-height:56vh;overflow-y:auto;padding:4px 2px}
+  .msg{max-width:86%;padding:12px 16px;border-radius:12px;font-size:14px;line-height:1.8;white-space:pre-wrap}
+  .msg.master{background:var(--panel2);border:1px solid var(--line);align-self:flex-start}
+  .msg.user{background:#2b2410;border:1px solid var(--gold-dim);align-self:flex-end;color:#f0e6cd}
+  .msg .who{font-size:11px;color:var(--gold-dim);letter-spacing:2px;margin-bottom:6px}
+  .chips{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin-top:14px}
+  #renji-sub{flex-direction:row;flex-wrap:wrap;align-items:center}
+  .chip{
+    border:1px solid var(--gold-dim);color:var(--gold);background:transparent;border-radius:20px;
+    padding:6px 16px;font-size:13px;cursor:pointer;font-family:inherit;letter-spacing:2px;
+  }
+  .chip:hover{background:var(--gold);color:#241d12}
+  .chip:disabled{opacity:.4;cursor:wait}
+  .chip-wide{margin-top:10px;padding:8px 22px;font-size:14px}
+  .scene-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%}
+  .scene-card{
+    display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;
+    background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;cursor:pointer;font-family:inherit;
+    transition:border-color .15s ease,transform .15s ease,background .15s ease;
+  }
+  .scene-card:hover{border-color:var(--gold);background:rgba(201,168,106,0.08);transform:translateY(-2px)}
+  .scene-card:disabled{opacity:.4;cursor:wait}
+  .sc-ico{font-size:20px;line-height:1}
+  .sc-t{font-size:15px;color:var(--gold);font-weight:600;letter-spacing:2px}
+  .sc-d{font-size:12px;color:var(--muted);letter-spacing:0.5px;line-height:1.5}
+  .input-row{display:flex;gap:10px;margin-top:14px}
+  .input-row input{
+    flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    padding:11px 14px;color:var(--text);font-size:14px;font-family:inherit;
+  }
+  .input-row input:focus{outline:none;border-color:var(--gold-dim)}
+  .input-row button{
+    padding:0 22px;border:none;border-radius:8px;cursor:pointer;background:var(--gold);
+    color:#241d12;font-size:14px;letter-spacing:2px;font-family:inherit;
+  }
+  .input-row button:disabled{opacity:.5}
+  .cursor{display:inline-block;width:8px;height:16px;background:var(--gold);vertical-align:-2px;animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px;letter-spacing:2px;padding:6px 0}
+  .spinner{
+    width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--gold);
+    border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .err{color:var(--red);font-size:13px;margin-top:10px;display:none}
+
+  /* === 用户区（header 右上角）+ 模态框 === */
+  .user-bar{position:fixed;top:14px;right:18px;display:flex;gap:8px;align-items:center;z-index:50}
+  .user-bar button{
+    background:rgba(31,26,22,.7);border:1px solid var(--line);border-radius:20px;
+    color:var(--gold);font-family:inherit;font-size:13px;letter-spacing:1px;
+    padding:6px 14px;cursor:pointer;transition:background .15s;
+  }
+  .user-bar button:hover{background:var(--gold);color:#241d12}
+  .user-bar .who{color:var(--muted);font-size:12px;letter-spacing:1px;padding:0 4px}
+
+  /* === 未登录 banner === */
+  .anon-banner{
+    display:flex;align-items:center;gap:18px;
+    background:linear-gradient(135deg,rgba(201,168,106,.12),rgba(201,168,106,.04));
+    border:1px solid var(--gold-dim);border-radius:12px;
+    padding:16px 22px;margin:18px auto 22px;max-width:780px;
+    box-shadow:0 4px 18px rgba(0,0,0,.25);
+  }
+  .anon-icon{font-size:32px;flex-shrink:0;line-height:1}
+  .anon-body{flex:1;min-width:0}
+  .anon-title{color:var(--gold);font-size:14px;letter-spacing:4px;font-weight:500;margin-bottom:6px}
+  .anon-text{color:var(--text);font-size:13px;line-height:1.7;letter-spacing:1px}
+  .anon-text b{color:var(--gold);font-weight:500}
+  .anon-actions{display:flex;gap:8px;flex-shrink:0}
+  .anon-btn{
+    padding:9px 18px;border-radius:8px;cursor:pointer;font-family:inherit;
+    font-size:13px;letter-spacing:2px;font-weight:500;border:1px solid transparent;
+  }
+  .anon-btn.primary{background:var(--gold);color:#241d12;border-color:var(--gold)}
+  .anon-btn.primary:hover{filter:brightness(1.08)}
+  .anon-btn.ghost{background:transparent;color:var(--gold);border-color:var(--gold-dim)}
+  .anon-btn.ghost:hover{background:rgba(201,168,106,.12)}
+  @media(max-width:640px){.anon-banner{flex-direction:column;text-align:center}.anon-actions{width:100%;justify-content:center}}
+
+  .modal-mask{
+    position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;
+    display:none;align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-mask.show{display:flex}
+  .modal{
+    background:var(--panel);border:1px solid var(--gold-dim);border-radius:14px;
+    padding:28px 28px 24px;width:min(420px,94vw);
+    box-shadow:0 18px 50px rgba(0,0,0,.6);
+  }
+  .modal h3{font-size:16px;color:var(--gold);letter-spacing:4px;font-weight:500;margin-bottom:18px;text-align:center}
+  .modal .row{margin-bottom:14px}
+  .modal .row label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:2px}
+  .modal .row input{
+    width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;
+  }
+  .modal .row input:focus{outline:none;border-color:var(--gold-dim)}
+  .modal .actions{display:flex;gap:10px;margin-top:18px}
+  .modal button.prime{
+    flex:1;padding:11px 0;border:none;border-radius:8px;cursor:pointer;
+    background:var(--gold);color:#241d12;font-size:14px;letter-spacing:4px;
+    font-family:inherit;font-weight:500;
+  }
+  .modal button.prime:hover{filter:brightness(1.08)}
+  .modal button.prime:disabled{opacity:.5;cursor:wait}
+  .modal button.ghost{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    padding:11px 0;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;
+  }
+  .modal .err{color:var(--red);font-size:12px;margin-top:6px;display:block;letter-spacing:1px}
+  .modal .hint{color:var(--muted);font-size:12px;letter-spacing:1px;margin-top:8px;line-height:1.7}
+  .modal .hint b{color:var(--gold);font-weight:500}
+  .modal .tabs{display:flex;gap:8px;margin-bottom:18px;border-bottom:1px solid var(--line);padding-bottom:4px}
+  .modal .tab{
+    background:transparent;border:none;color:var(--muted);font-family:inherit;
+    font-size:13px;letter-spacing:2px;cursor:pointer;padding:6px 12px;
+  }
+  .modal .tab.active{color:var(--gold);border-bottom:2px solid var(--gold);padding-bottom:2px;margin-bottom:-2px}
+  .modal .temp-pw{
+    background:var(--panel2);border:1px dashed var(--gold-dim);border-radius:8px;
+    padding:14px 12px;text-align:center;margin:14px 0 8px;
+    font-family:"Courier New",monospace;font-size:18px;color:var(--gold);letter-spacing:3px;
+    user-select:all;cursor:pointer;
+  }
+  .modal .temp-pw-hint{color:var(--muted);font-size:11px;letter-spacing:1px;margin-top:6px;text-align:center}
+  /* 强制改密弹窗：遮罩最浓，不可关掉 */
+  .modal-mask.force{background:rgba(0,0,0,.95)}
+  .modal-mask.force .modal{border:1px solid var(--red)}
+
+  /* === 档案列表面板 === */
+  .prof-card{
+    background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin-bottom:12px;
+  }
+  .prof-card .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .prof-card .label{color:var(--gold);font-size:15px;letter-spacing:2px;font-weight:500}
+  .prof-card .tag-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .prof-card .mini-tag{font-size:11px;color:var(--muted);background:rgba(0,0,0,.3);border-radius:12px;padding:2px 10px}
+  .prof-card .meta{font-size:12px;color:var(--muted);line-height:1.7;margin:6px 0}
+  .prof-card .actions{display:flex;gap:8px;margin-top:10px}
+  .prof-card .actions button{flex:1;font-size:12px;padding:8px 0;border-radius:6px;cursor:pointer;font-family:inherit;letter-spacing:2px}
+  .prof-card .actions .resume{background:var(--gold);color:#241d12;border:none;font-weight:500}
+  .prof-card .actions .edit-l{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
+  .prof-card .actions .del{background:transparent;border:1px solid var(--line);color:var(--red)}
+  .prof-list-empty{color:var(--muted);font-size:13px;text-align:center;padding:32px 10px;letter-spacing:1px;line-height:1.8}
+  .prof-list-empty .new-btn{display:inline-block;margin-top:14px;padding:9px 22px;background:var(--gold);color:#241d12;border-radius:8px;cursor:pointer;font-family:inherit;letter-spacing:2px;font-size:13px;border:none;font-weight:500}
+
+  /* ====== 表单 tab 切换（4 种输入方式） ====== */
+  .form-tabs{display:flex;gap:4px;background:var(--panel2);padding:4px;border-radius:10px;margin-bottom:18px}
+  .form-tab{
+    flex:1;padding:9px 0;background:transparent;border:none;border-radius:7px;
+    color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;letter-spacing:2px;
+  }
+  .form-tab.active{background:var(--gold);color:#241d12;font-weight:500}
+  .form-pane{display:none}
+  .form-pane.active{display:block}
+
+  /* ====== 4 列 wheel picker（手写，仿 iOS 滚轮） ====== */
+  .wheel-picker{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:10px;padding:6px;height:200px;overflow:hidden;
+    position:relative;
+  }
+  .wheel-col{
+    position:relative;height:100%;overflow:hidden;border-radius:6px;
+    user-select:none;-webkit-user-select:none;
+  }
+  .wheel-col::before, .wheel-col::after{
+    content:"";position:absolute;left:0;right:0;height:70px;pointer-events:none;z-index:3;
+  }
+  .wheel-col::before{top:0;background:linear-gradient(var(--panel2) 30%,transparent)}
+  .wheel-col::after{bottom:0;background:linear-gradient(transparent,var(--panel2) 70%)}
+  .wheel-col .hi{ /* 选中行：金线圆角框（不遮字） */
+    position:absolute;left:6px;right:6px;top:50%;height:40px;margin-top:-20px;
+    border:1.5px solid var(--gold);border-radius:8px;
+    background:transparent;pointer-events:none;z-index:2;
+  }
+  .wheel-list{
+    position:absolute;left:0;right:0;top:50%;
+    transition:transform .25s ease;z-index:1;
+  }
+  .wheel-item{
+    height:40px;box-sizing:border-box;
+    display:flex;align-items:center;justify-content:center;
+    text-align:center;font-size:14px;
+    color:var(--muted);cursor:pointer;letter-spacing:1px;
+  }
+  .wheel-item.sel{
+    color:var(--gold);font-weight:600;font-size:15px;
+  }
+  .wheel-item.unknown{color:var(--red);font-style:italic}
+
+  /* AI 识别 tab：文本框 */
+  .ai-textarea{
+    width:100%;min-height:90px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    padding:11px 13px;color:var(--text);font-size:13.5px;font-family:inherit;line-height:1.7;
+    resize:vertical;
+  }
+  .ai-textarea:focus{outline:none;border-color:var(--gold-dim)}
+  .ai-hint{font-size:11.5px;color:var(--muted);margin-top:6px;letter-spacing:1px;line-height:1.7}
+  .ai-paste-btn{
+    float:right;background:transparent;border:1px solid var(--line);color:var(--muted);
+    border-radius:14px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit;letter-spacing:1px;
+  }
+  .ai-paste-btn:hover{border-color:var(--gold-dim);color:var(--gold)}
+  .ai-examples{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+  .ai-example{
+    font-size:12px;color:var(--muted);background:var(--panel3);border:1px dashed var(--line);
+    border-radius:6px;padding:6px 10px;cursor:pointer;letter-spacing:1px;line-height:1.6;
+  }
+  .ai-example:hover{border-color:var(--gold-dim);color:var(--text)}
+  .ai-status{font-size:12px;color:var(--gold);margin-top:10px;letter-spacing:1px;min-height:16px}
+  .ai-status.err{color:var(--red)}
+
+  /* 四柱直入 */
+  .pillar-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .pillar-grid .col label{display:block;font-size:11px;color:var(--muted);text-align:center;margin-bottom:5px;letter-spacing:2px}
+  .pillar-grid select{
+    width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    padding:9px 4px;color:var(--text);font-size:14px;font-family:inherit;text-align:center;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>玄 机 阁</h1>
+  <p>中式八字 · 西式印占 · 中西合参</p>
+</header>
+
+<!-- 右上角用户区：未登录显示「注册 / 登录」，已登录显示「昵称 + 退出」 -->
+<div class="user-bar" id="user-bar">
+  <button id="ub-register" onclick="openAuth('register')">注 册</button>
+  <button id="ub-login" onclick="openAuth('login')">登 录</button>
+</div>
+
+<div class="wrap">
+  <!-- 模式切换：常驻，排盘后仍可切换 -->
+  <div class="mode-tabs" id="mode-tabs">
+    <button class="mode-tab active" data-mode="bazi">中式八字</button>
+    <button class="mode-tab" data-mode="vedic">西式印占</button>
+    <button class="mode-tab" data-mode="combo">中西合参</button>
+  </div>
+  <!-- 表单 -->
+  <div class="anon-banner" id="anon-banner" style="display:none">
+  <div class="anon-icon">👤</div>
+  <div class="anon-body">
+    <div class="anon-title">未 登 录</div>
+    <div class="anon-text">登录后可享受：<b>跨设备同步</b> · <b>我的档案</b> · <b>关系人档案</b> · 数据云端留存<br><span style="opacity:.7;font-size:12px">没账号？点右上角「注册」一键完成（仅邮箱，无邮件验证）</span></div>
+  </div>
+  <div class="anon-actions">
+    <button class="anon-btn primary" onclick="openAuth('register')">立 即 注 册</button>
+    <button class="anon-btn ghost" onclick="openAuth('login')">登 录</button>
+  </div>
+</div>
+<div class="panel" id="form-panel">
+    <h2>报 上 生 辰</h2>
+    <!-- 4 种输入方式 tab -->
+    <div class="form-tabs" id="form-tabs">
+      <button class="form-tab active" data-form="ai">AI 识 别</button>
+      <button class="form-tab" data-form="solar">公历生日</button>
+      <button class="form-tab" data-form="lunar">农历生日</button>
+      <button class="form-tab" data-form="pillars">四柱八字</button>
+    </div>
+
+    <!-- AI 识别 tab -->
+    <div class="form-pane active" id="form-ai">
+      <button class="ai-paste-btn" id="ai-paste">粘 贴</button>
+      <textarea class="ai-textarea" id="ai-text" placeholder="把你的生辰信息粘到这里——可以是一段聊天记录、身份证号摘抄、出生证明备注、八字四柱（如「丙戌 午 己未 庚午」），甚至可以是大段描述…AI 会自动抽取关键字段。"></textarea>
+      <div class="ai-hint">Example:</div>
+      <div class="ai-examples">
+        <div class="ai-example" data-ex="1989/12/13 21:00, new york, female, Sweet">1989/12/13 21:00, new york, female, Sweet</div>
+        <div class="ai-example" data-ex="1997年二月十九 12:00, 上海, 女, 丽丽">1997年二月十九 12:00, 上海, 女, 丽丽</div>
+        <div class="ai-example" data-ex="丙戌 午 己未 庚午, 男, 董王">丙戌 午 己未 庚午, 男, 董王</div>
+      </div>
+      <div style="margin-top:14px">
+        <div class="ai-hint" style="margin-top:0">想先告诉先生一些你觉得重要的？（学业压力、感情困惑、近况担忧…）一并进入解读：</div>
+        <textarea class="ai-textarea" id="ai-note" style="min-height:60px;margin-top:4px" placeholder="比如：明年想考研、家里催婚、近期失眠、刚换工作…（可空）"></textarea>
+      </div>
+      <div class="ai-status" id="ai-status"></div>
+      <div id="ai-parse-preview" style="display:none;margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 13px;font-size:12.5px;color:var(--muted);letter-spacing:1px;line-height:1.7"></div>
+    </div>
+
+    <!-- 公历生日 tab -->
+    <div class="form-pane" id="form-solar">
+      <div class="ai-hint" style="margin-top:0;margin-bottom:8px">滚动 4 列选日期时间（最右边一列含「未知」，时不清可置未知）</div>
+      <div class="wheel-picker" id="wp-solar">
+        <div class="wheel-col" data-col="year"></div>
+        <div class="wheel-col" data-col="month"></div>
+        <div class="wheel-col" data-col="day"></div>
+        <div class="wheel-col" data-col="hour"></div>
+      </div>
+    </div>
+
+    <!-- 农历生日 tab -->
+    <div class="form-pane" id="form-lunar">
+      <div class="ai-hint" style="margin-top:0;margin-bottom:8px">填农历（系统自动转公历再排盘）</div>
+      <div class="form-grid">
+        <div class="field"><label>农历年</label>
+          <div class="wheel-picker" style="height:180px" id="wp-lunar-year"><div class="wheel-col" data-col="lyear"></div></div>
+        </div>
+        <div class="field"><label>农历月</label>
+          <div class="wheel-picker" style="height:180px" id="wp-lunar-month"><div class="wheel-col" data-col="lmonth"></div></div>
+        </div>
+        <div class="field"><label>农历日</label>
+          <div class="wheel-picker" style="height:180px" id="wp-lunar-day"><div class="wheel-col" data-col="lday"></div></div>
+        </div>
+        <div class="field"><label>出生时辰</label>
+          <div class="wheel-picker" style="height:180px" id="wp-lunar-hour"><div class="wheel-col" data-col="lhour"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 四柱八字 tab -->
+    <div class="form-pane" id="form-pillars">
+      <div class="ai-hint" style="margin-top:0;margin-bottom:10px">直接给四个天干地支（系统反推公历日期）</div>
+      <div class="pillar-grid">
+        <div class="col"><label>年柱</label>
+          <select id="p-ygz"></select></div>
+        <div class="col"><label>月柱</label>
+          <select id="p-mgz"></select></div>
+        <div class="col"><label>日柱</label>
+          <select id="p-dgz"></select></div>
+        <div class="col"><label>时柱</label>
+          <select id="p-hgz"></select></div>
+      </div>
+      <div class="ai-status" id="pillars-status" style="margin-top:12px"></div>
+    </div>
+
+    <!-- 共有字段：性别 / 地点 / 模糊 -->
+    <div class="form-grid" style="margin-top:18px">
+      <div class="field"><label>性别</label>
+        <select id="f-gender"><option>男</option><option>女</option></select>
+      </div>
+      <div class="field"><label>出生省份</label>
+        <select id="f-province"></select>
+      </div>
+      <div class="field"><label>出生城市</label>
+        <select id="f-place"></select>
+      </div>
+      <div class="field"><label>姓名（可选，方便称呼）</label>
+        <input type="text" id="f-name" placeholder="如：丽丽"></div>
+    </div>
+    <div class="check"><input type="checkbox" id="f-vague">
+      <label for="f-vague">出生时间只是大概印象（将按降级轨道解读，只谈性格趋势）</label></div>
+    <!-- 隐藏的兼容字段（其他模块仍依赖 f-date/f-time） -->
+    <input type="hidden" id="f-date">
+    <input type="hidden" id="f-time">
+    <button class="primary" id="btn-start">开 始 排 盘</button>
+    <div class="err" id="form-err"></div>
+  </div>
+
+  <!-- 盘面 -->
+  <div class="panel chart-card" id="chart-panel">
+    <h2>命 盘</h2>
+    <div id="bazi-chart">
+      <div class="day-master" id="day-master"></div>
+      <div class="pillars" id="pillars"></div>
+      <div class="meta-row" id="chart-meta"></div>
+      <div class="bars" id="wuxing-bars"></div>
+    </div>
+    <div id="vedic-chart" style="display:none">
+      <div class="vedic-lagna" id="vedic-lagna"></div>
+      <div class="vedic-planets" id="vedic-planets"></div>
+      <div class="meta-row" id="vedic-meta"></div>
+    </div>
+  </div>
+
+  <!-- 对话 -->
+  <div class="panel" id="chat">
+    <h2>玄机先生</h2>
+    <div id="msgs"></div>
+    <div class="chips" id="chips" style="display:none">
+      <div class="scene-grid">
+        <button class="scene-card" data-q="我想细看：家运亲情">
+          <span class="sc-ico">🏠</span>
+          <span class="sc-t">家运亲情</span>
+          <span class="sc-d">原生家庭底色、与长辈的远近冷暖</span>
+        </button>
+        <button class="scene-card" data-q="我想细看：学业考试">
+          <span class="sc-ico">📚</span>
+          <span class="sc-t">学业考试</span>
+          <span class="sc-d">读书拿证、面试发挥、考试年走势</span>
+        </button>
+        <button class="scene-card" data-q="我想细看：事业工作">
+          <span class="sc-ico">💼</span>
+          <span class="sc-t">事业工作</span>
+          <span class="sc-d">适合平台还是自由、何时跳槽蛰伏</span>
+        </button>
+        <button class="scene-card" data-q="我想细看：婚恋感情">
+          <span class="sc-ico">💞</span>
+          <span class="sc-t">婚恋感情</span>
+          <span class="sc-d">正缘节奏、在哪种关系里容易受伤</span>
+        </button>
+        <button class="scene-card" data-q="我想细看：健康">
+          <span class="sc-ico">🌿</span>
+          <span class="sc-t">健康调养</span>
+          <span class="sc-d">体质寒热、需留意的年份与作息</span>
+        </button>
+        <button class="scene-card" data-special="hehun">
+          <span class="sc-ico">💍</span>
+          <span class="sc-t">合婚</span>
+          <span class="sc-d">两人八字合不合、这段关系前景</span>
+        </button>
+        <button class="scene-card" data-special="renji">
+          <span class="sc-ico">🤝</span>
+          <span class="sc-t">人际</span>
+          <span class="sc-d">谁是贵人谁是耗神、该怎么相处</span>
+        </button>
+        <button class="scene-card" data-special="free">
+          <span class="sc-ico">✍️</span>
+          <span class="sc-t">自由提问</span>
+          <span class="sc-d">直接说你想看的方向，如创业买房</span>
+        </button>
+      </div>
+      <button class="chip chip-wide" data-q="不用再问了，请直接结合命盘给我看深度分析">直接看分析</button>
+    </div>
+    <div class="chips" id="renji-sub" style="display:none">
+      <span style="font-size:12px;color:var(--muted);letter-spacing:2px;align-self:center">你想看哪种：</span>
+      <button class="chip" data-special="renji-person">具体某个人</button>
+      <button class="chip" data-q="我想细看：整体人际关系">整体人际关系</button>
+      <button class="chip" data-special="back">返回</button>
+    </div>
+    <!-- 对方信息面板：合婚 或 人际·具体某人 时填写 -->
+    <div class="panel" id="other-panel" style="display:none;margin-top:14px">
+      <h2 id="other-title">对方的信息</h2>
+      <div class="field" id="other-contact-row" style="display:none">
+        <label>从已保存的关系人选（登录后才能用）</label>
+        <select id="other-contact-select"><option value="">从已保存的关系人里快速选（或下方手动填）</option></select>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>对方性别</label>
+          <select id="o-gender"><option>男</option><option>女</option></select>
+        </div>
+        <div class="field"><label>出生日期</label><input type="date" id="o-date"></div>
+        <div class="field"><label>出生时间（不知可留空）</label><input type="time" id="o-time"></div>
+        <div class="field"><label>出生省份</label><select id="o-province"></select></div>
+        <div class="field"><label>出生城市</label><select id="o-place"></select></div>
+        <div class="field"><label>对方与你的关系</label>
+          <input type="text" id="o-rel" placeholder="如：对象 / 同事 / 朋友…"></div>
+      </div>
+      <button class="primary" id="btn-other">排 出 对 方 盘 面</button>
+      <div class="err" id="other-err"></div>
+    </div>
+    <div class="input-row">
+      <input type="text" id="chat-input" placeholder="向玄机先生补充你的经历，或提出想看的方向…" disabled>
+      <button id="btn-send" disabled>呈上</button>
+    </div>
+  </div>
+</div>
+
+<!-- 免责声明：页面底部只此一处，先生回复中不再重复 -->
+<footer>本服务为传统文化娱乐体验，所有解读仅供参考娱乐，不构成医疗、投资、法律建议 · 生辰信息仅用于本次排盘</footer>
+
+<!-- 登录/注册 modal -->
+<div class="modal-mask" id="auth-modal">
+  <div class="modal">
+    <h3 id="auth-title">登 录 玄 机 阁</h3>
+    <div class="tabs">
+      <button class="tab active" data-tab="login" onclick="switchAuthTab('login')">登录</button>
+      <button class="tab" data-tab="register" onclick="switchAuthTab('register')">注册</button>
+    </div>
+
+    <!-- 登录面板 -->
+    <div id="auth-login">
+      <div class="row"><label>邮箱</label>
+        <input type="email" id="login-email" autocomplete="email" placeholder="you@example.com"></div>
+      <div class="row"><label>密码</label>
+        <input type="password" id="login-password" autocomplete="current-password" placeholder=""></div>
+      <div class="err" id="login-err"></div>
+      <div class="actions">
+        <button class="prime" onclick="doLogin()">登 录</button>
+      </div>
+      <div class="hint">还没账号？点上方「注册」标签，邮箱注册即可。</div>
+      <div style="text-align:center;margin-top:12px"><a href="javascript:void(0)" onclick="openForgotPw()" style="color:var(--accent)">忘 记 密 码 ？</a></div>
+    </div>
+
+    <!-- 注册面板 -->
+    <div id="auth-register" style="display:none">
+      <div class="row"><label>邮箱</label>
+        <input type="email" id="reg-email" autocomplete="email" placeholder="you@example.com"></div>
+      <div class="hint">系统会生成一个<b>临时密码</b>展示在此处，请复制留存，登录后系统会强制要求你改密。</div>
+      <div class="actions" style="margin-top:18px">
+        <button class="prime" onclick="doRegister()">注 册</button>
+      </div>
+      <div class="err" id="reg-err"></div>
+
+      <!-- 注册成功展示临时密码 -->
+      <div id="reg-success" style="display:none">
+        <div class="hint" style="margin-top:18px">注册成功！系统为你生成的临时密码（点一下可全选，复制保存）：</div>
+        <div class="temp-pw" id="reg-temp-pw" onclick="copyTempPw()"></div>
+        <div class="temp-pw-hint">点击密码框一键复制，关闭此窗口后请到「登录」标签用此密码登录</div>
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top:14px">
+      <button class="ghost" onclick="closeAuth()">关 闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 忘记密码 modal -->
+<div class="modal-mask" id="fp-modal">
+  <div class="modal">
+    <h3 id="fp-title">忘 记 密 码 ？</h3>
+
+    <!-- 第一步：发验证码 -->
+    <div id="fp-step1">
+      <div class="hint" style="margin-bottom:14px">
+        输入注册时用的邮箱，我们将发送 6 位验证码到该邮箱。<br>
+        <span style="opacity:.7;font-size:12px">验证码 5 分钟内有效；若超过 60 秒未收到新验证码说明邮箱不存在或被限频。</span>
+      </div>
+      <div class="row"><label>邮箱</label>
+        <input type="email" id="fp-email" autocomplete="email"></div>
+      <div class="actions" style="margin-top:14px">
+        <button class="prime" id="fp-send-btn" onclick="doRequestCode()">发 送 验 证 码</button>
+      </div>
+      <div class="err" id="fp-step1-err"></div>
+      <div id="fp-sent-msg" style="display:none;margin-top:14px"></div>
+    </div>
+
+    <!-- 第二步：填验证码 + 新密码 -->
+    <div id="fp-step2" style="display:none">
+      <div class="hint" style="margin-bottom:14px">已向 <b id="fp-email-disp"></b> 发送验证码，复制或输入：</div>
+      <div class="row"><label>6 位 验 证 码</label>
+        <input type="text" id="fp-code" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" placeholder="6 位数字" style="letter-spacing:6px;font-size:18px;text-align:center"></div>
+      <div class="row"><label>新 密 码（至 少 8 位）</label>
+        <input type="password" id="fp-new-pw" autocomplete="new-password"></div>
+      <div class="row"><label>再 输 一 遍 新 密 码</label>
+        <input type="password" id="fp-new-pw2" autocomplete="new-password"></div>
+      <div class="err" id="fp-step2-err"></div>
+      <div class="actions" style="margin-top:14px">
+        <button class="prime" onclick="doResetPw()">重 置 密 码 并 登 入</button>
+      </div>
+      <div class="hint" style="margin-top:10px"><a href="javascript:void(0)" onclick="fpBackToStep1()" style="color:var(--accent)">没收到验证码？换一个邮箱或重发</a></div>
+    </div>
+
+    <div class="actions" style="margin-top:14px">
+      <button class="ghost" onclick="closeForgotPw()">关 闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 强制改密 modal（首次登录必须改密，不能跳过） -->
+<div class="modal-mask force" id="cp-modal">
+  <div class="modal">
+    <h3>请 修 改 初 始 密 码</h3>
+    <div class="hint" style="margin-bottom:18px">这是临时密码的<b>首次登录</b>，出于账户安全，<b>必须先设置新密码</b>才能继续使用玄机阁。新密码至少 8 位。</div>
+    <div class="row"><label>原密码（临时密码）</label>
+      <input type="password" id="cp-old" autocomplete="current-password"></div>
+    <div class="row"><label>新密码（至少 8 位）</label>
+      <input type="password" id="cp-new" autocomplete="new-password"></div>
+    <div class="row"><label>再输一遍新密码</label>
+      <input type="password" id="cp-new2" autocomplete="new-password"></div>
+    <div class="err" id="cp-err"></div>
+    <div class="actions">
+      <button class="prime" onclick="doChangePassword()">修 改 密 码 并 进 入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 我的档案列表 modal -->
+<div class="modal-mask" id="prof-modal">
+  <div class="modal" style="width:min(560px,94vw);max-height:88vh;display:flex;flex-direction:column">
+    <h3>我 的 命 理 档 案</h3>
+    <div class="hint" style="margin-bottom:14px">
+      每次「开始排盘」后会自动保存一份档案（关联你的账号），可在任何设备登录后继续解读；不想要可删除。
+    </div>
+    <div id="prof-list" style="overflow-y:auto;flex:1;min-height:0"></div>
+    <div class="actions" style="margin-top:14px;flex-shrink:0">
+      <button class="prime" onclick="closeProfiles()">关 闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 关系人列表 modal -->
+<div class="modal-mask" id="contact-modal">
+  <div class="modal" style="width:min(560px,94vw);max-height:88vh;display:flex;flex-direction:column">
+    <h3>我 认 识 的 人</h3>
+    <div class="hint" style="margin-bottom:14px">
+      合婚 / 人际·具体某人 时填过的对方信息会在这里自动存档，下次可一键复用。你也可以手动新增、修改、删除。
+    </div>
+    <div id="contact-list" style="overflow-y:auto;flex:1;min-height:0"></div>
+    <div class="actions" style="margin-top:14px;flex-shrink:0">
+      <button class="prime" onclick="closeContacts()">关 闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let chart = null;
+let history = [];
+let busy = false;
+let mode = 'bazi';
+let lastBase = null; // 记住用户已填的出生信息，切换模式时复用重排
+
+// 用户登录态
+const AUTH_TOKEN_KEY = 'xuanji_token';
+let currentUser = null; // {email, nickname, must_change_password}
+
+// 每个模式独立保存会话（盘面 + 对话 + 盘面展示HTML + 生成状态 + 当前档案id），切换时不改动、不重生成
+const sessions = {
+  bazi:   { ready: false, chart: null, history: [], chartHtml: { bazi: '', vedic: '' }, busy: false, profileId: null },
+  vedic:  { ready: false, chart: null, history: [], chartHtml: { bazi: '', vedic: '' }, busy: false, profileId: null },
+  combo:  { ready: false, chart: null, history: [], chartHtml: { bazi: '', vedic: '' }, busy: false, profileId: null },
+};
+
+const $ = id => document.getElementById(id);
+
+// ========== 用户态：localStorage + API + 模态框 ==========
+function getToken(){ return localStorage.getItem(AUTH_TOKEN_KEY) || ''; }
+function setToken(t){ if(t) localStorage.setItem(AUTH_TOKEN_KEY, t); }
+function clearToken(){ localStorage.removeItem(AUTH_TOKEN_KEY); }
+
+async function authApi(path, body){
+  return authRequest(path, 'POST', body);
+}
+
+async function authPatch(path, body){
+  return authRequest(path, 'PATCH', body);
+}
+
+async function authDelete(path){
+  return authRequest(path, 'DELETE', null);
+}
+
+async function authRequest(path, method, body){
+  const headers = {'Content-Type': 'application/json'};
+  const t = getToken();
+  if(t) headers['Authorization'] = 'Bearer ' + t;
+  const opts = {method, headers};
+  if(body !== null && body !== undefined) opts.body = JSON.stringify(body);
+  const resp = await fetch(path, opts);
+  return await resp.json();
+}
+
+async function authGet(path){
+  const headers = {};
+  const t = getToken();
+  if(t) headers['Authorization'] = 'Bearer ' + t;
+  const resp = await fetch(path, {headers});
+  return await resp.json();
+}
+
+function renderUserBar(){
+  const bar = $('user-bar');
+  // banner 跟 user-bar 状态联动：登录后藏起来
+  const ab = $('anon-banner');
+  if(ab) ab.style.display = currentUser ? 'none' : '';
+  if(currentUser){
+    const nick = currentUser.nickname || currentUser.email;
+    bar.innerHTML =
+      `<span class="who" title="${nick}">👤 ${nick}</span>` +
+      `<button onclick="openProfiles()" title="查看历史档案">档 案</button>` +
+      `<button onclick="openContacts()" title="查看已存的关系人">关 系 人</button>` +
+      `<button onclick="openAuth('login')" title="用另一个邮箱登录">切 换 账 号</button>` +
+      `<button onclick="doLogout()" title="退出当前账号">退 出</button>`;
+  }else{
+    bar.innerHTML =
+      `<button id="ub-register" onclick="openAuth('register')">注 册</button>` +
+      `<button id="ub-login" onclick="openAuth('login')">登 录</button>`;
+  }
+}
+
+function openAuth(which){
+  $('auth-modal').classList.add('show');
+  switchAuthTab(which);
+  // 清空错误和注册成功提示
+  $('login-err').textContent = '';
+  $('reg-err').textContent = '';
+  $('reg-success').style.display = 'none';
+  $('reg-email').value = '';
+}
+
+function closeAuth(){ $('auth-modal').classList.remove('show'); }
+
+// ===== 忘记密码 =====
+function openForgotPw(){
+  // 切到 step 1；保留上次填的邮箱
+  $('fp-step1').style.display = '';
+  $('fp-step2').style.display = 'none';
+  $('fp-step1-err').textContent = '';
+  $('fp-step2-err').textContent = '';
+  $('fp-sent-msg').style.display = 'none';
+  $('fp-sent-msg').innerHTML = '';
+  // 沿用登录 panel 里用户已填的邮箱（省一次输入）
+  const e = $('login-email').value.trim();
+  if(e) $('fp-email').value = e;
+  closeAuth();
+  $('fp-modal').classList.add('show');
+}
+
+function closeForgotPw(){
+  $('fp-modal').classList.remove('show');
+  // 清理敏感字段
+  $('fp-new-pw').value = '';
+  $('fp-new-pw2').value = '';
+  $('fp-code').value = '';
+}
+
+function fpBackToStep1(){
+  $('fp-step2').style.display = 'none';
+  $('fp-step1').style.display = '';
+}
+
+async function doRequestCode(){
+  const email = $('fp-email').value.trim();
+  $('fp-step1-err').textContent = '';
+  $('fp-sent-msg').style.display = 'none';
+  if(!email){ $('fp-step1-err').textContent = '请输入邮箱'; return; }
+  const btn = $('fp-send-btn');
+  btn.disabled = true; btn.textContent = '发 送 中 …';
+  const r = await authApi('/api/forgot-password', {email});
+  btn.disabled = false; btn.textContent = '发 送 验 证 码';
+  if(!r.ok){ $('fp-step1-err').textContent = r.error || '发送失败，请稍后再试'; return; }
+  if(r.rate_limited){
+    $('fp-step1-err').textContent = '请求太频繁，请在 ' + r.retry_after_seconds + ' 秒后再试';
+    return;
+  }
+  if(r.user_exists === false){
+    // 不区分邮箱是否存在，但仍照常推进 step2（无效的码会失败）— 防探测的同时不能完全屏蔽用户操作
+    // 但为了 UX 不让用户白填码，我们给一个温和提示并继续
+    $('fp-sent-msg').innerHTML = '<div style="padding:12px;background:var(--panel3);border-radius:6px">如果该邮箱已注册，验证码已发出；请检查邮箱（含垃圾邮件）</div>';
+    $('fp-sent-msg').style.display = '';
+    return; // 让用户先去邮箱确认，避免无意义输入
+  }
+  // 真正发出了 or dev 模式拿 debug_code
+  let codeToFill = '';
+  if(r.debug_mode && r.debug_code){
+    codeToFill = r.debug_code;
+    $('fp-sent-msg').innerHTML =
+      '<div style="padding:14px 16px;background:var(--panel3);border-radius:6px;font-size:13px;line-height:1.7">' +
+        '<b style="color:var(--gold)">验证码已生成（5 分钟内有效）</b><br>' +
+        '<span style="opacity:.85">邮件功能未开启，验证码已直接填入下方输入框（<b style="color:var(--accent);font-size:18px;letter-spacing:4px">' + r.debug_code + '</b>）。如有邮件刷新同样能看到。</span>' +
+      '</div>';
+  } else {
+    $('fp-sent-msg').innerHTML = '<div style="padding:12px;background:var(--panel3);border-radius:6px">验证码已发送到 <b>' + email + '</b>，请查收（含垃圾邮件）<br><span style="opacity:.7;font-size:12px">5 分钟内有效</span></div>';
+  }
+  $('fp-sent-msg').style.display = '';
+  $('fp-email-disp').textContent = email;
+  // 无论邮件是否真发，都把验证码直接填到输入框（用户少输一次）
+  if(codeToFill){ $('fp-code').value = codeToFill; }
+  $('fp-step1').style.display = 'none';
+  $('fp-step2').style.display = '';
+  // 焦点：自动填了码 → 直接到密码框；没填 → 留着让用户输入
+  if(codeToFill){ $('fp-new-pw').focus(); } else { $('fp-code').focus(); }
+}
+
+async function doResetPw(){
+  const email = $('fp-email').value.trim();
+  const code = $('fp-code').value.trim();
+  const np = $('fp-new-pw').value;
+  const np2 = $('fp-new-pw2').value;
+  $('fp-step2-err').textContent = '';
+  if(!code || code.length !== 6){ $('fp-step2-err').textContent = '请输入 6 位数字验证码'; return; }
+  if(!np || np.length < 8){ $('fp-step2-err').textContent = '新密码至少 8 位'; return; }
+  if(np !== np2){ $('fp-step2-err').textContent = '两次新密码输入不一致'; return; }
+  const btn = document.querySelector('#fp-step2 button.prime');
+  btn.disabled = true; btn.textContent = '重 置 中 …';
+  const r = await authApi('/api/reset-password', {email, code, new_password: np});
+  btn.disabled = false; btn.textContent = '重 置 密 码 并 登 入';
+  if(!r.ok){ $('fp-step2-err').textContent = r.error || '重置失败，请检查验证码或重发'; return; }
+  // OK — 自动登录
+  setToken(r.token);
+  currentUser = {email: r.email, nickname: r.nickname, must_change_password: false};
+  closeForgotPw();
+  renderUserBar();
+  alert('密码已重置成功！已为你自动登入玄机阁。');
+}
+
+function switchAuthTab(tab){
+  document.querySelectorAll('#auth-modal .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  $('auth-login').style.display = tab === 'login' ? '' : 'none';
+  $('auth-register').style.display = tab === 'register' ? '' : 'none';
+  $('auth-title').textContent = tab === 'login' ? '登 录 玄 机 阁' : '注 册 玄 机 阁';
+}
+
+async function doRegister(){
+  const email = $('reg-email').value.trim();
+  $('reg-err').textContent = '';
+  if(!email){ $('reg-err').textContent = '请输入邮箱'; return; }
+  const r = await authApi('/api/register', {email});
+  if(!r.ok){ $('reg-err').textContent = r.error || '注册失败'; return; }
+  // 展示临时密码 + 缓存到 sessionStorage（防止用户刷新页面后丢失，便于 cp-modal 自动回填）
+  $('reg-temp-pw').textContent = r.temp_password;
+  try{ sessionStorage.setItem('xuanji_temp_pw_' + email.toLowerCase(), r.temp_password); }catch(e){}
+  $('reg-success').style.display = '';
+  // 注册时不自动登录，避免「立即登录」按钮触发强制改密弹窗挤占视线；用户自行到「登录」标签登录
+}
+
+function copyTempPw(){
+  const pw = $('reg-temp-pw').textContent;
+  if(!pw) return;
+  navigator.clipboard.writeText(pw).then(()=>{
+    const hint = $('reg-success').querySelector('.temp-pw-hint');
+    const orig = hint.textContent;
+    hint.textContent = '已复制 ✓';
+    setTimeout(()=>hint.textContent = orig, 1500);
+  }).catch(()=>{
+    // 退化：用 prompt 让用户复制
+    prompt('请手动复制此密码：', pw);
+  });
+}
+
+async function doLogin(){
+  const email = $('login-email').value.trim();
+  const pw = $('login-password').value;
+  $('login-err').textContent = '';
+  if(!email || !pw){ $('login-err').textContent = '请输入邮箱和密码'; return; }
+  await doLoginWith(email, pw);
+}
+
+async function doLoginWith(email, pw){
+  const r = await authApi('/api/login', {email, password: pw});
+  if(!r.ok){ $('login-err').textContent = r.error || '登录失败'; return; }
+  setToken(r.token);
+  currentUser = {email: r.email, nickname: r.nickname, must_change_password: r.must_change_password};
+  closeAuth();
+  renderUserBar();
+  if(r.must_change_password){
+    // 强制改密弹窗：cp-old 自动回填临时密码（刷新页面也能找回）
+    $('cp-old').value = pw;
+    $('cp-modal').classList.add('show');
+    setTimeout(()=> $('cp-new').focus(), 100);
+  }else{
+    alert('欢迎回来，' + (r.nickname || r.email) + '！');
+    // 登录成功：自动恢复最近一份本人档案的盘面，免重新排盘
+    autoResumeLatestProfile();
+  }
+}
+
+function doLogout(){
+  clearToken();
+  currentUser = null;
+  renderUserBar();
+}
+
+async function doChangePassword(){
+  const oldPw = $('cp-old').value;
+  const newPw = $('cp-new').value;
+  const newPw2 = $('cp-new2').value;
+  $('cp-err').textContent = '';
+  if(!oldPw || !newPw){ $('cp-err').textContent = '请输入原密码和新密码'; return; }
+  if(newPw.length < 8){ $('cp-err').textContent = '新密码至少 8 位'; return; }
+  if(newPw !== newPw2){ $('cp-err').textContent = '两次新密码不一致'; return; }
+  const r = await authApi('/api/change-password', {old_password: oldPw, new_password: newPw});
+  if(!r.ok){ $('cp-err').textContent = r.error || '改密失败'; return; }
+  // 更新当前用户态 + 清空 sessionStorage 中的旧临时密码（无用了）
+  currentUser.must_change_password = false;
+  try{
+    if(currentUser.email) sessionStorage.removeItem('xuanji_temp_pw_' + currentUser.email.toLowerCase());
+  }catch(e){}
+  $('cp-modal').classList.remove('show');
+  // 清空密码框
+  $('cp-old').value = ''; $('cp-new').value = ''; $('cp-new2').value = '';
+  alert('密码修改成功！现在可以正常使用玄机阁了。');
+  // 改密完成，可正常使用：自动恢复最近一份本人档案的盘面
+  autoResumeLatestProfile();
+}
+
+async function checkSession(){
+  // 启动时若有 token，调 /api/me 验证 + 必要时弹强制改密
+  if(!getToken()){ renderUserBar(); return; }
+  const r = await authGet('/api/me');
+  if(!r.ok){ clearToken(); renderUserBar(); return; }
+  currentUser = r;
+  renderUserBar();
+  // 已登录：尽量恢复最近一份本人档案，让用户继续之前的盘面分析，
+  // 即使必须改密也先恢复（弹窗与恢复并行：先恢复在用户眼里更友好，弹窗仍正常展示）
+  autoResumeLatestProfile();
+  if(r.must_change_password){
+    // 尝试从 sessionStorage 找回临时密码（刷新页面不丢）
+    try{
+      const cached = sessionStorage.getItem('xuanji_temp_pw_' + (r.email || '').toLowerCase());
+      if(cached) $('cp-old').value = cached;
+    }catch(e){}
+    $('cp-modal').classList.add('show');
+    setTimeout(()=>{
+      if($('cp-old').value) $('cp-new').focus();
+    }, 100);
+  }
+}
+
+// ========== 命理档案长期保存：保存 / 同步 / 加载 / 删除 ==========
+// currentProfileId：登录账号下当前正在用的那份档案（按模式）
+let profileListCache = []; // 我的档案列表缓存
+
+async function loadProfileList(){
+  if(!currentUser) return [];
+  const r = await authGet('/api/profiles');
+  if(r.ok && r.profiles){ profileListCache = r.profiles; return r.profiles; }
+  return [];
+}
+
+function detectModeFromChart(chart){
+  if(!chart) return null;
+  if(chart.bazi && chart.vedic) return 'combo';
+  if(chart.lagna) return 'vedic';
+  if(chart.day_master || chart.pillars) return 'bazi';
+  return null;
+}
+
+async function syncProfileForCurrentMode(m){
+  // 排盘成功时调用：登录态把指定 mode 的 chart+history+base 同步到账号
+  // 参数 m 由调用方传入实际排盘的模式，避免依赖全局 mode（combo 降级会把全局 mode 改掉，导致同步错 session 或漏建档）
+  if(!currentUser) return null;
+  const mm = m || mode;
+  const s = sessions[mm];
+  if(!s.ready || !s.chart) return null;
+  if(s.profileId){ return s.profileId; }   // 已建过档，不再重复
+  // 复用其它模式已有的档案 id，让「中式八字/西式印占/中西合参」共享同一份档案，
+  // 避免每切一个模式就新建一份档案，导致退出重进后各模式对话互相丢失
+  const existing = ['bazi','vedic','combo'].map(k => sessions[k].profileId).find(Boolean);
+  if(existing){
+    s.profileId = existing;
+    return existing;
+  }
+  // 默认 label：「算过」+ 时间戳，user 可改
+  const now = new Date();
+  const stamp = `${now.getMonth()+1}.${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const label = `算过 ${stamp}`;
+  const r = await authApi('/api/profiles', {
+    label, relation: 'self',
+    base: lastBase || {}, chart: s.chart,
+    modes: [mm], history: {[mm]: s.history},
+  });
+  if(r.ok){
+    s.profileId = r.id;
+    return r.id;
+  }
+  return null;
+}
+
+// 流式解读每 round 结束后同步当前 mode 的 history
+async function syncHistoryForMode(m){
+  if(!currentUser) return;
+  const s = sessions[m];
+  if(!s || !s.profileId) return;
+  try{
+    await authPatch(`/api/profiles/${s.profileId}/history`, {
+      mode: m, messages: s.history,
+    });
+  }catch(e){ /* 静默失败：不让同步错误打扰用户 */ }
+}
+
+// 列出当前用户档案（点「我的档案」按钮）
+async function openProfiles(){
+  $('prof-modal').classList.add('show');
+  $('prof-list').innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:24px">加载中…</div>';
+  const list = await loadProfileList();
+  renderProfileList(list);
+}
+function closeProfiles(){ $('prof-modal').classList.remove('show'); }
+
+function renderProfileList(list){
+  const el = $('prof-list');
+  if(!list || !list.length){
+    el.innerHTML =
+      `<div class="prof-list-empty">
+         暂无档案。<br>点下方「开始排盘」算一次，会自动保存到这里。
+         <br><button class="new-btn" onclick="closeProfiles(); $('form-panel').scrollIntoView({behavior:'smooth'});">去 排 盘</button>
+       </div>`;
+    return;
+  }
+  el.innerHTML = list.map(p => {
+    const base = p.base || {};
+    const timeStr = base.time_precise ? `${String(base.hour).padStart(2,'0')}:${String(base.minute||0).padStart(2,'0')}` : '时不清';
+    const dateStr = `${base.year || '?'}-${String(base.month||0).padStart(2,'0')}-${String(base.day||0).padStart(2,'0')}`;
+    const placeStr = base.place || '地点不详';
+    const modes = (p.modes || []).map(m => {
+      const cnt = (p.history_size || {})[m] || 0;
+      return `<span class="mini-tag">${m==='bazi'?'中式八字':m==='vedic'?'西式印占':'中西合参'}·${cnt}条</span>`;
+    }).join('');
+    const snap = p.snapshot || {};
+    const snapStr = snap.day_master ? `日主 <b style="color:var(--gold)">${snap.day_master}</b>` :
+                    snap.lagna ? `上升 <b style="color:var(--gold)">${snap.lagna}</b>` : '';
+    return `
+      <div class="prof-card" data-pid="${p.id}">
+        <div class="top">
+          <div class="label">${escapeHtml(p.label)}</div>
+          <div style="font-size:11px;color:var(--muted)">${(p.updated_at || '').slice(0,10)}</div>
+        </div>
+        <div class="meta">
+          ${base.gender || '?'} · ${dateStr} ${timeStr} · ${placeStr}${snapStr ? ' · '+snapStr : ''}
+        </div>
+        <div class="tag-row">${modes}</div>
+        <div class="actions">
+          <button class="resume" onclick="resumeProfile('${p.id}')">继 续 解 读</button>
+          <button class="edit-l" onclick="renameProfile('${p.id}','${escapeHtml(p.label)}')">改 名</button>
+          <button class="del" onclick="delProfile('${p.id}','${escapeHtml(p.label)}')">删 除</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function escapeHtml(s){ return String(s||'').replace(/[<>&"']/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'})[c]); }
+
+// 清洗先生回复里的 Markdown/排版符号，避免「*」「#」「——」等乱码直接显示给用户。
+// 提示词已要求先生不用这些符号，但模型偶尔仍会破戒，这里做兜底过滤（幂等，可重复调用）。
+function cleanMasterText(s){
+  let t = String(s||'');
+  // 加粗/斜体的成对星号 **xxx** / *xxx*
+  t = t.replace(/\*\*+/g, '');
+  // 单独残留的星号
+  t = t.replace(/\*/g, '');
+  // markdown 井号标题符号
+  t = t.replace(/^[ \t]*#{1,6}[ \t]+/gm, '');
+  t = t.replace(/#/g, '');
+  // 破折号（可能是两个或三个连字符）
+  t = t.replace(/——+/g, '，');
+  t = t.replace(/—/g, '，');
+  // markdown 无序列表短横线/点号起始（仅行首，避免误伤正常句中的连字符）
+  t = t.replace(/^[ \t]*[-•·][ \t]+/gm, '');
+  // 连续空行压成单个空行
+  t = t.replace(/\n{3,}/g, '\n\n');
+  return t;
+}
+
+// 登录后自动恢复最近一份「本人」档案的盘面，让用户免于重新排盘。
+// 只挑 relation==='self' 的本人档案；取 updated_at 最新的一份；无档案则静默跳过。
+async function autoResumeLatestProfile(){
+  if(!currentUser) return;
+  try{
+    const list = await loadProfileList();
+    if(!list || !list.length) return;
+    // 只要本人的档案（合婚/关系人的是对方信息，不该自动恢复成主盘面）
+    const own = list.filter(p => p.relation === 'self');
+    if(!own.length) return;
+    // 取最近更新的一份（updated_at 最新）
+    const latest = own.reduce((a, b) => (a.updated_at > b.updated_at ? a : b));
+    await resumeProfile(latest.id, true);
+  }catch(e){ /* 静默失败：自动恢复不应打扰用户 */ }
+}
+
+// 加载已有档案继续解读。silent=true 时失败不弹 alert（用于自动恢复场景，静默跳过）
+async function resumeProfile(pid, silent){
+  if(!currentUser){ closeProfiles(); if(!silent) alert('请先登录'); return; }
+  const r = await authGet(`/api/profiles/${pid}`);
+  if(!r.ok || !r.profile){ if(!silent) alert(r.error || '加载失败'); return; }
+  const p = r.profile;
+  closeProfiles();
+  const m = detectModeFromChart(p.chart);
+  if(!m){ if(!silent) alert('该档案盘面格式不识别，无法继续'); return; }
+  // 同步 base 到表单（让用户以后想改信息能从这里继续）
+  const b = p.base || {};
+  lastBase = b;
+  if(b.gender) $('f-gender').value = b.gender;
+  if(b.year) $('f-date').value = `${b.year}-${String(b.month).padStart(2,'0')}-${String(b.day).padStart(2,'0')}`;
+  if(b.hour !== undefined) $('f-time').value = `${String(b.hour).padStart(2,'0')}:${String(b.minute||0).padStart(2,'0')}`;
+  if(b.place){
+    // 还原省份/城市 select（异步）
+    try{
+      const cr = await fetch('/api/cities');
+      const cdata = await cr.json();
+      const provSel = $('f-province'), citySel = $('f-place');
+      provSel.innerHTML = Object.keys(cdata.provinces).map(pr=>`<option>${pr}</option>`).join('');
+      // 选第一个匹配省份
+      const matchedProv = Object.keys(cdata.provinces).find(pr => (cdata.provinces[pr]||[]).includes(b.place));
+      if(matchedProv){
+        provSel.value = matchedProv;
+        citySel.innerHTML = cdata.provinces[matchedProv].map(c=>`<option>${c}</option>`).join('');
+        citySel.value = b.place;
+      }
+    }catch(e){ /* 城市选择恢复失败不影响主流程 */ }
+  }
+  // 切到 mode，恢复 chart + history
+  mode = m;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === m));
+  // 「无 assistant 回复」= 没生成基本盘解读 → 标记 needReading，切到该 tab 时会懒加载补一份
+  const needsReading = (h) => !(h || []).some(x => x && x.role === 'assistant');
+  // 恢复时，如果 history 为空/只有 user 占位（即还没真正聊过），补一条占位 user 让 streamChat 起来有 messages
+  const seedUserMsg = '（求测者刚提交盘面，请开始第一阶段·初判）';
+  const seedVedicUserMsg = '（求测者刚提交星盘，请开始第一阶段·初判）';
+  const normalizeHist = (h, modeKey) => {
+    const arr = Array.isArray(h) ? h.slice() : [];
+    if(!arr.length){
+      arr.push({role:'user', content: modeKey === 'vedic' ? seedVedicUserMsg : seedUserMsg});
+    }
+    return arr;
+  };
+  sessions[m] = {
+    ready: true, chart: p.chart, history: normalizeHist(p.history[m], m),
+    chartHtml: { bazi: '', vedic: '' }, busy: false, profileId: pid,
+    needReading: needsReading(p.history[m]),
+    userNote: (p.base && p.base.user_note) || null,
+  };
+  // 若档案是合参（含八字+印占），把两个子盘也分别缓存到对应模式，
+  // 让用户点「中式八字」「西式印占」时秒切且能看到各自的对话历史，而不是重新排盘丢对话
+  if(m === 'combo' && p.chart && p.chart.bazi){
+    sessions.bazi = {
+      ready: true, chart: p.chart.bazi, history: normalizeHist(p.history.bazi, 'bazi'),
+      chartHtml: { bazi: '', vedic: '' }, busy: false, profileId: pid,
+      needReading: needsReading(p.history.bazi),
+      userNote: (p.base && p.base.user_note) || null,
+    };
+  }
+  if(m === 'combo' && p.chart && p.chart.vedic){
+    sessions.vedic = {
+      ready: true, chart: p.chart.vedic, history: normalizeHist(p.history.vedic, 'vedic'),
+      chartHtml: { bazi: '', vedic: '' }, busy: false, profileId: pid,
+      needReading: needsReading(p.history.vedic),
+      userNote: (p.base && p.base.user_note) || null,
+    };
+  }
+  chart = p.chart;
+  history = sessions[m].history;
+  // 切到 mode 触发的 render
+  switchModeUI(m);
+  // 重渲染 chart + msgs
+  if(m === 'bazi') renderChart(p.chart);
+  else if(m === 'vedic') renderVedic(p.chart);
+  else if(m === 'combo') renderCombo(p.chart);
+  renderHistory($('msgs'), history, false);
+  $('chips').style.display = 'flex';
+}
+
+function switchModeUI(m){
+  // 触发原有的 mode 切换机制：复用 saveSession / restoreSession
+  // 用一个轻量的伪切换：直接调现有模式显示
+  // 原生实现：document.querySelector('.mode-tab[data-mode="'+m+'"]').click()
+  // 但我们不能复用 click 因为它会触发 doStart，这里手动切换
+  if(!sessions[m].ready){ return; }
+  chart = sessions[m].chart;
+  history = sessions[m].history;
+  busy = sessions[m].busy;
+  restoreSession(m);
+}
+
+async function renameProfile(pid, oldLabel){
+  const v = prompt('新档案名（原：' + oldLabel + '）', oldLabel);
+  if(!v || v === oldLabel) return;
+  const r = await authPatch(`/api/profiles/${pid}`, {label: v});
+  if(!r.ok){ alert(r.error || '改名失败'); return; }
+  const list = await loadProfileList();
+  renderProfileList(list);
+}
+
+async function delProfile(pid, label){
+  if(!confirm('删除档案「' + label + '」？删除后该档案的对话历史也会丢失。')) return;
+  const r = await authDelete(`/api/profiles/${pid}`);
+  if(!r.ok){ alert(r.error || '删除失败'); return; }
+  // 把本地 mode session 的 profileId 清掉
+  Object.keys(sessions).forEach(m => {
+    if(sessions[m].profileId === pid) sessions[m].profileId = null;
+  });
+  const list = await loadProfileList();
+  renderProfileList(list);
+}
+
+// ========== 关系人档案 ==========
+let contactListCache = [];
+
+async function loadContactList(){
+  if(!currentUser) return [];
+  const r = await authGet('/api/contacts');
+  if(r.ok && r.contacts){ contactListCache = r.contacts; return r.contacts; }
+  return [];
+}
+
+async function openContacts(){
+  $('contact-modal').classList.add('show');
+  $('contact-list').innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:24px">加载中…</div>';
+  const list = await loadContactList();
+  renderContactList(list);
+}
+function closeContacts(){ $('contact-modal').classList.remove('show'); }
+
+function renderContactList(list){
+  const el = $('contact-list');
+  // 顶部新增按钮
+  const topBtn = `<div style="margin-bottom:14px"><button class="prof-card .new-btn" style="background:var(--gold);color:#241d12;width:100%;padding:10px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;letter-spacing:2px;font-size:13px;font-weight:500" onclick="addContactInline()">+ 新 增 一 位 关 系 人</button></div>`;
+  if(!list || !list.length){
+    el.innerHTML = topBtn +
+      `<div class="prof-list-empty">还没保存任何关系人。<br>做一次合婚或具体某人际关系后会自动存档，你也可以点上方按钮手动新增。 </div>`;
+    return;
+  }
+  el.innerHTML = topBtn + list.map(c => {
+    const base = c.base || {};
+    const dateStr = base.year ? `${base.year}-${String(base.month||0).padStart(2,'0')}-${String(base.day||0).padStart(2,'0')}` : '?';
+    const timeStr = base.time_precise && base.hour !== undefined ? `${String(base.hour).padStart(2,'0')}:${String(base.minute||0).padStart(2,'0')}` : '时不清';
+    const placeStr = base.place || '地点不详';
+    const relationMap = {spouse:'配偶',ex:'前任',parent:'父母',child:'子女',sibling:'兄弟姐妹',friend:'朋友',colleague:'同事',crush:'暗恋',other:'其他'};
+    const relText = relationMap[c.relation] || '关系';
+    const snap = c.snap || {};
+    const snapStr = snap.day_master ? `日主 <b style="color:var(--gold)">${snap.day_master}</b>` :
+                    snap.lagna ? `上升 <b style="color:var(--gold)">${snap.lagna}</b>` : '';
+    return `
+      <div class="prof-card" data-cid="${c.id}">
+        <div class="top">
+          <div class="label">${escapeHtml(c.label)} <span style="font-size:12px;color:var(--muted);font-weight:normal">· ${relText}</span></div>
+          <div style="font-size:11px;color:var(--muted)">${(c.updated_at || '').slice(0,10)}</div>
+        </div>
+        <div class="meta">
+          ${base.gender || '?'} · ${dateStr} ${timeStr} · ${placeStr}${snapStr ? ' · '+snapStr : ''}
+        </div>
+        <div class="actions">
+          <button class="resume" onclick="pickContactToForm('${c.id}')">用 此 人</button>
+          <button class="edit-l" onclick="renameContact('${c.id}','${escapeHtml(c.label)}','${c.relation}')">编 辑</button>
+          <button class="del" onclick="delContact('${c.id}','${escapeHtml(c.label)}')">删 除</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function addContactInline(){
+  if(!currentUser){ closeContacts(); alert('请先登录'); return; }
+  const label = prompt('称呼（必填，如：老婆/同事小李/王小明）', '');
+  if(!label) return;
+  const year = prompt('出生年', '1990');
+  if(!year || isNaN(Number(year))) return;
+  const month = prompt('出生月（1-12）', '1');
+  const day = prompt('出生日（1-31）', '1');
+  const hour = prompt('出生时（0-23，不知可空）', '');
+  const minute = prompt('出生分（0-59）', '0');
+  const gender = prompt('性别（男/女）', '');
+  const place = prompt('出生城市（要能被城市表识别，如：上海）', '');
+  const relation = prompt('关系（spouse/ex/parent/child/sibling/friend/colleague/crush/other）', 'friend');
+  const note = prompt('备注（可选，可空）', '');
+  const base = {
+    year: Number(year), month: Number(month), day: Number(day),
+    hour: hour === '' ? 12 : Number(hour),
+    minute: Number(minute),
+    gender: gender || '男',
+    time_precise: hour !== '',
+    place: place || '',
+  };
+  let chart = {};
+  // 后端排盘（可选，先简化不排）
+  const r = await authApi('/api/contacts', {
+    label, relation, base, chart, note,
+  });
+  if(!r.ok){ alert(r.error || '新增失败'); return; }
+  const list = await loadContactList();
+  renderContactList(list);
+  refreshOtherContactSelect();  // 让对方面板能选到
+}
+
+async function renameContact(cid, oldLabel, oldRel){
+  const v = prompt('新称呼', oldLabel);
+  if(!v || v === oldLabel) return;
+  const relOptions = ['spouse','ex','parent','child','sibling','friend','colleague','crush','other'];
+  const relCnMap = {spouse:'配偶',ex:'前任',parent:'父母',child:'子女',sibling:'兄弟姐妹',friend:'朋友',colleague:'同事',crush:'暗恋',other:'其他'};
+  const newRel = prompt('新关系（英文）\n可选：spouse/ex/parent/child/sibling/friend/colleague/crush/other', oldRel);
+  const finalRel = relOptions.includes(newRel) ? newRel : oldRel;
+  const note = prompt('备注（可选）', '');
+  const r = await authPatch(`/api/contacts/${cid}`, {label: v, relation: finalRel, note});
+  if(!r.ok){ alert(r.error || '编辑失败'); return; }
+  const list = await loadContactList();
+  renderContactList(list);
+  refreshOtherContactSelect();
+}
+
+async function delContact(cid, label){
+  if(!confirm('删除关系人「' + label + '」？')) return;
+  const r = await authDelete(`/api/contacts/${cid}`);
+  if(!r.ok){ alert(r.error || '删除失败'); return; }
+  const list = await loadContactList();
+  renderContactList(list);
+  refreshOtherContactSelect();
+}
+
+// "用此人" — 把关系人填进 other-panel
+function pickContactToForm(cid){
+  // 拉完整 contact 信息（含 base）以填表
+  authGet(`/api/contacts/${cid}`).then(r => {
+    if(!r.ok){ alert(r.error || '加载失败'); return; }
+    const c = r.contact;
+    const b = c.base || {};
+    // 注入到 other-panel 表单
+    $('o-gender').value = b.gender || $('o-gender').value;
+    if(b.year){
+      $('o-date').value = `${b.year}-${String(b.month||0).padStart(2,'0')}-${String(b.day||0).padStart(2,'0')}`;
+    }
+    if(b.hour !== undefined && b.time_precise){
+      $('o-time').value = `${String(b.hour).padStart(2,'0')}:${String(b.minute||0).padStart(2,'0')}`;
+    }
+    if(b.place){
+      // 异步加载城市
+      fetch('/api/cities').then(cr => cr.json()).then(cdata => {
+        const provSel = $('o-province'), citySel = $('o-place');
+        provSel.innerHTML = Object.keys(cdata.provinces).map(pr=>`<option>${pr}</option>`).join('');
+        const matchedProv = Object.keys(cdata.provinces).find(pr => (cdata.provinces[pr]||[]).includes(b.place));
+        if(matchedProv){
+          provSel.value = matchedProv;
+          citySel.innerHTML = cdata.provinces[matchedProv].map(cc=>`<option>${cc}</option>`).join('');
+          citySel.value = b.place;
+        }
+      });
+    }
+    // 关闭 contact modal，打开 other-panel
+    closeContacts();
+    $('other-panel').style.display = '';
+    $('o-rel').value = c.label || '';
+    // 切到关系人 chip 模式（合婚 / 具体某人）—— 但用户可能从 contact modal 自由进入，只能提示去点对应 chip
+    alert('已填好对方信息，请在主界面点「合婚」或「人际·具体某人」chip，会进入这个对方盘面。');
+  });
+}
+
+// 异步加载对方面板的「从关系人选」下拉
+async function refreshOtherContactSelect(){
+  const sel = $('other-contact-select');
+  if(!sel) return;
+  if(!currentUser){ sel.style.display = 'none'; return; }
+  const list = await loadContactList();
+  if(!list.length){ sel.style.display = 'none'; return; }
+  sel.style.display = '';
+  const relMap = {spouse:'配偶',ex:'前任',parent:'父母',child:'子女',sibling:'兄弟姐妹',friend:'朋友',colleague:'同事',crush:'暗恋',other:'其他'};
+  sel.innerHTML = `<option value="">从已保存的关系人里快速选（或下方手动填）</option>` +
+    list.map(c => `<option value="${c.id}">${escapeHtml(c.label)} · ${relMap[c.relation]||'关系'} · ${c.base.year||'?'}-${String(c.base.month||0).padStart(2,'0')}-${String(c.base.day||0).padStart(2,'0')}</option>`).join('');
+  sel.onchange = () => {
+    if(sel.value) pickContactToForm(sel.value);
+    sel.value = ''; // 选择完后清空，方便再选
+  };
+}
+
+// 加载省→市二级联动下拉（主表单 + 对方面板共用同一份城市数据）
+let _citiesData = null;
+async function loadCities(){
+  const resp = await fetch('/api/cities');
+  const data = await resp.json();
+  _citiesData = data;
+  const provList = Object.keys(data.provinces);
+  // 主表单
+  const provSel = $('f-province');
+  const citySel = $('f-place');
+  provList.forEach(prov => {
+    const opt = document.createElement('option');
+    opt.value = prov; opt.textContent = prov;
+    provSel.appendChild(opt);
+  });
+  // 对方面板
+  const oProvSel = $('o-province');
+  const oCitySel = $('o-place');
+  provList.forEach(prov => {
+    const opt = document.createElement('option');
+    opt.value = prov; opt.textContent = prov;
+    oProvSel.appendChild(opt);
+  });
+  const renderCities = (sel, prov) => {
+    sel.innerHTML = '';
+    (data.provinces[prov] || []).forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      sel.appendChild(opt);
+    });
+  };
+  // 默认选中湖北·武汉（大众化示例）
+  provSel.value = '湖北';
+  renderCities(citySel, '湖北');
+  oProvSel.value = '湖北';
+  renderCities(oCitySel, '湖北');
+  provSel.onchange = () => renderCities(citySel, provSel.value);
+  oProvSel.onchange = () => renderCities(oCitySel, oProvSel.value);
+}
+loadCities();
+
+// ============================================================
+// 4 列 wheel picker（年/月/日/时 + 时辰），手写无依赖
+// ============================================================
+const WHEEL = {
+  // 各列的取值列表（带 sentinel：-1 表示"未知"）
+  year: (() => { const a=[]; for(let y=2026;y>=1940;y--) a.push({v:y, label:String(y)+'年'}); a.push({v:-1,label:'未知'}); return a;})(),
+  month: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'].map((l,i)=>({v:i+1,label:l})),
+  day: (()=>{const a=[]; for(let d=1;d<=31;d++) a.push({v:d,label:d+'日'}); a.push({v:-1,label:'未知'}); return a;})(),
+  hour: [
+    {v:-1,label:'未知'},
+    {v:0,label:'0时(子)'},{v:1,label:'1时'},{v:2,label:'2时(丑)'},
+    {v:3,label:'3时'},{v:4,label:'4时(寅)'},{v:5,label:'5时'},
+    {v:6,label:'6时(卯)'},{v:7,label:'7时'},{v:8,label:'8时(辰)'},
+    {v:9,label:'9时'},{v:10,label:'10时(巳)'},{v:11,label:'11时'},
+    {v:12,label:'12时(午)'},{v:13,label:'13时'},{v:14,label:'14时(未)'},
+    {v:15,label:'15时'},{v:16,label:'16时(申)'},{v:17,label:'17时'},
+    {v:18,label:'18时(酉)'},{v:19,label:'19时'},{v:20,label:'20时(戌)'},
+    {v:21,label:'21时'},{v:22,label:'22时(亥)'},{v:23,label:'23时'},
+  ],
+  // 农历用：年/月/日 单独 wheel
+  lyear: (() => { const a=[]; for(let y=2026;y>=1940;y--) a.push({v:y,label:y+'年'}); return a;})(),
+  lmonth: ['正','二','三','四','五','六','七','八','九','十','冬','腊'].map((l,i)=>({v:i+1,label:l+'月'})),
+  lday: (()=>{const a=[]; for(let d=1;d<=30;d++) a.push({v:d,label:d+'日'}); return a;})(),
+  lhour: [
+    {v:0,label:'子时(23-1)'},{v:2,label:'丑时(1-3)'},{v:4,label:'寅时(3-5)'},
+    {v:6,label:'卯时(5-7)'},{v:8,label:'辰时(7-9)'},{v:10,label:'巳时(9-11)'},
+    {v:12,label:'午时(11-13)'},{v:14,label:'未时(13-15)'},{v:16,label:'申时(15-17)'},
+    {v:18,label:'酉时(17-19)'},{v:20,label:'戌时(19-21)'},{v:22,label:'亥时(21-23)'},
+  ],
+};
+
+// 每列的当前选中值（sentinel 模式）
+const _wheelSel = {
+  'wp-solar': {year:1990, month:6, day:15, hour:-1},
+  'wp-lunar-year': {lyear:1990},
+  'wp-lunar-month': {lmonth:6},
+  'wp-lunar-day': {lday:15},
+  'wp-lunar-hour': {lhour:12},
+};
+
+function _wheelRenderList(col, items, selectedV){
+  col.innerHTML = '';
+  const hi = document.createElement('div'); hi.className='hi'; col.appendChild(hi);
+  const list = document.createElement('div'); list.className='wheel-list'; col.appendChild(list);
+  const IH = 40;  // 行高，与 .wheel-item height 一致
+  items.forEach(it=>{
+    const el = document.createElement('div');
+    el.className = 'wheel-item' + (it.v === selectedV ? ' sel' : '') + (it.v === -1 ? ' unknown' : '');
+    el.textContent = it.label;
+    el.dataset.v = it.v;
+    el.onclick = () => { _wheelSet(col, it.v); };
+    list.appendChild(el);
+  });
+  // 居中：让 idx 项中心正好对齐 wheel-col 中心
+  const idx = items.findIndex(it=>it.v === selectedV);
+  if(idx >= 0){
+    list.style.transform = `translateY(-${IH/2 + idx*IH}px)`;
+  }
+}
+
+function _wheelSet(col, v){
+  const key = col.parentElement.id;        // wp-solar / wp-lunar-*
+  const ckey = col.dataset.col;            // year/month/...
+  _wheelSel[key][ckey] = v;
+  // 重新渲染
+  const items = WHEEL[ckey];
+  _wheelRenderList(col, items, v);
+  // 同步到 f-date/f-time
+  if(key === 'wp-solar') _syncSolarToHidden();
+  if(key === 'wp-lunar-year' || key === 'wp-lunar-month' || key === 'wp-lunar-day' || key === 'wp-lunar-hour'){
+    // 暂不同步到 f-date（等用户点开始排盘时再调后端 lunar-to-solar 转）
+  }
+}
+
+function _wheelAttachMouseWheel(col, items){
+  // 鼠标滚轮
+  col.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const key = col.parentElement.id;
+    const ckey = col.dataset.col;
+    const cur = _wheelSel[key][ckey];
+    const idx = items.findIndex(it=>it.v === cur);
+    let next = idx + (e.deltaY > 0 ? 1 : -1);
+    if(next < 0) next = 0;
+    if(next >= items.length) next = items.length-1;
+    _wheelSet(col, items[next].v);
+  }, {passive:false});
+  // 触屏拖动
+  let startY=null, startTrY=0, dragging=false;
+  col.addEventListener('touchstart', e=>{
+    if(!e.touches[0]) return;
+    startY = e.touches[0].clientY;
+    const list = col.querySelector('.wheel-list');
+    const m = (list.style.transform||'').match(/translateY\(-?(\d+)px/);
+    startTrY = m ? parseInt(m[1]) : 0;
+    dragging = true;
+  }, {passive:true});
+  col.addEventListener('touchmove', e=>{
+    if(!dragging || !e.touches[0]) return;
+    e.preventDefault();
+    const dy = startY - e.touches[0].clientY;
+    const list = col.querySelector('.wheel-list');
+    const key = col.parentElement.id;
+    const ckey = col.dataset.col;
+    const idx = items.findIndex(it=>it.v === _wheelSel[key][ckey]);
+    list.style.transition = 'none';
+    list.style.transform = `translateY(-${startTrY + dy}px)`;
+  }, {passive:false});
+  col.addEventListener('touchend', ()=>{
+    if(!dragging) return;
+    dragging = false;
+    const list = col.querySelector('.wheel-list');
+    const m = (list.style.transform||'').match(/translateY\(-?(\d+)px/);
+    const ty = m ? parseInt(m[1]) : 0;
+    let idx = Math.round((ty - 20) / 40);
+    if(idx < 0) idx = 0;
+    if(idx >= items.length) idx = items.length-1;
+    _wheelSet(col, items[idx].v);
+  });
+}
+
+function _initWheelPicker(pickerId, defaults){
+  const picker = document.getElementById(pickerId);
+  if(!picker) return;
+  // 默认值（让 wp-solar 默认 1990-6-15 未知时）
+  for(const [k,v] of Object.entries(defaults||{})){
+    _wheelSel[pickerId][k] = v;
+  }
+  picker.querySelectorAll('.wheel-col').forEach(col=>{
+    const ckey = col.dataset.col;
+    const items = WHEEL[ckey] || [];
+    _wheelRenderList(col, items, _wheelSel[pickerId][ckey]);
+    _wheelAttachMouseWheel(col, items);
+  });
+}
+
+function _syncSolarToHidden(){
+  const s = _wheelSel['wp-solar'];
+  if(s.year === -1 || s.month === -1 || s.day === -1){
+    $('f-date').value = ''; $('f-time').value = ''; return;
+  }
+  const ymd = `${s.year}-${String(s.month).padStart(2,'0')}-${String(s.day).padStart(2,'0')}`;
+  $('f-date').value = ymd;
+  // 时辰未知 → 12:00 兜底，time_precise=false
+  $('f-time').value = s.hour === -1 ? '12:00' : `${String(s.hour).padStart(2,'0')}:00`;
+}
+
+function _syncSolarVagueFromHour(){
+  // 如果选了「未知」时，time_precise=false；否则 true
+  const s = _wheelSel['wp-solar'];
+  $('f-vague').checked = (s.hour === -1);
+}
+
+_initWheelPicker('wp-solar', {year:1990, month:6, day:15, hour:-1});
+_initWheelPicker('wp-lunar-year', {lyear:1990});
+_initWheelPicker('wp-lunar-month', {lmonth:6});
+_initWheelPicker('wp-lunar-day', {lday:15});
+_initWheelPicker('wp-lunar-hour', {lhour:12});
+_syncSolarToHidden();
+
+// 监听：用户切 solar tab 的 hour 时，联动 f-vague
+document.getElementById('wp-solar').addEventListener('click', e=>{
+  if(e.target.closest('.wheel-col[data-col="hour"]')) _syncSolarVagueFromHour();
+});
+
+// ============================================================
+// 4-tab 切换
+// ============================================================
+let _activeFormTab = 'ai';
+let _aiFilled = null;  // AI 识别成功后存解析数据
+let _aiNote = '';      // 用户在「补充重点」填的文本
+let _lunarFilled = null; // 农历转公历成功后存
+let _pillarsFilled = null; // 四柱反推成功后存
+
+document.querySelectorAll('.form-tab').forEach(t=>{
+  t.onclick = ()=>{
+    const f = t.dataset.form;
+    if(f === _activeFormTab) return;
+    _activeFormTab = f;
+    document.querySelectorAll('.form-tab').forEach(x=>x.classList.toggle('active', x===t));
+    document.querySelectorAll('.form-pane').forEach(p=>p.classList.toggle('active', p.id === 'form-'+f));
+  };
+});
+
+// AI 识别：粘贴按钮
+document.getElementById('ai-paste').onclick = async ()=>{
+  const t = $('ai-text');
+  try{
+    const txt = await navigator.clipboard.readText();
+    if(txt) t.value = txt;
+    t.focus();
+  }catch(e){
+    // 权限被拒：让用户手动 Ctrl+V
+    t.focus();
+    $('ai-status').textContent = '（浏览器拒绝了自动读取，请 Ctrl+V 手动粘贴）';
+    $('ai-status').classList.add('err');
+  }
+};
+// AI 识别：example 一键填
+document.querySelectorAll('.ai-example').forEach(ex=>{
+  ex.onclick = ()=>{ $('ai-text').value = ex.dataset.ex; $('ai-text').focus(); };
+});
+
+// ============================================================
+// AI 识别提交逻辑
+// ============================================================
+async function aiFillFromText(){
+  const text = $('ai-text').value.trim();
+  _aiNote = $('ai-note').value.trim();
+  if(!text){
+    $('ai-status').textContent = '请先在文本框里写点东西再识别';
+    $('ai-status').classList.add('err');
+    return false;
+  }
+  $('ai-status').textContent = 'AI 正在识别…';
+  $('ai-status').classList.remove('err');
+  try{
+    const r = await fetch('/api/parse-info', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text})});
+    const d = await r.json();
+    if(d.ok && d.data){
+      _aiFilled = d.data;
+      // 把识别结果填到隐藏字段（共享 lastBase 的来源）
+      const x = d.data;
+      if(x.year && x.month && x.day){
+        $('f-date').value = `${x.year}-${String(x.month).padStart(2,'0')}-${String(x.day).padStart(2,'0')}`;
+      }
+      if(x.hour !== undefined){
+        $('f-time').value = `${String(x.hour).padStart(2,'0')}:${String(x.minute||0).padStart(2,'0')}`;
+        $('f-vague').checked = false;
+      }else{
+        $('f-time').value = '12:00';
+        $('f-vague').checked = true;
+      }
+      if(x.gender) $('f-gender').value = x.gender;
+      if(x.name) $('f-name').value = x.name;
+      // 地点：尝试落到省份/城市下拉
+      if(x.place){
+        const prov = $('f-province'), city = $('f-place');
+        // 先精确匹配省份（来自 cdata.provinces 的 key 列表）
+        const provKey = Object.keys(_citiesData?.provinces || {}).find(p => x.place.startsWith(p) || x.place === p);
+        let matched = false;
+        const tryMatch = (prv)=>{
+          prov.value = prv;
+          prov.dispatchEvent(new Event('change'));
+          // 城市精确匹配
+          for(const c of city.options){
+            if(c.value === x.place){ city.value = x.place; return true; }
+          }
+          // 城市模糊：contains
+          for(const c of city.options){
+            if(x.place.includes(c.value)){ city.value = c.value; return true; }
+          }
+          // 该省第一个城市（至少是省内）
+          if(city.options.length){ city.value = city.options[0].value; return true; }
+          return false;
+        };
+        if(provKey){
+          matched = tryMatch(provKey);
+        }else{
+          // place 可能是 "宝鸡" / "上海" 等直辖市级——挨个省份找
+          for(const pr of prov.options){
+            if(tryMatch(pr.value)){ matched = true; break; }
+          }
+        }
+        if(!matched){
+          // 兜底：选湖北·武汉（与原逻辑一致）
+          prov.value = '湖北'; prov.dispatchEvent(new Event('change'));
+          await new Promise(r=>setTimeout(r,50));
+          city.value = '武汉';
+        }
+      }
+      // 预览
+      $('ai-parse-preview').style.display = 'block';
+      $('ai-parse-preview').textContent = '已识别：' + [
+        x.year && `${x.year}年${x.month}月${x.day}日`,
+        x.hour !== undefined && `${x.hour}时${x.minute||0}分`,
+        x.place && `出生地：${x.place}`,
+        x.gender && `性别：${x.gender}`,
+        x.calendar_kind && `历法：${x.calendar_kind}`,
+      ].filter(Boolean).join(' · ');
+      $('ai-status').textContent = '✓ 识别完成，可检查/修改后点「开始排盘」';
+      $('ai-status').classList.remove('err');
+      return true;
+    }else{
+      // 解析失败：把原文当 user_note 发，给一个 1990 兜底日期让排盘能继续
+      _aiFilled = null;
+      $('f-date').value = '1990-06-15';
+      $('f-time').value = '12:00';
+      $('f-vague').checked = true;
+      $('ai-parse-preview').style.display = 'block';
+      $('ai-parse-preview').textContent = `AI 没识别出有效字段，原文已保存为「我补充的重点」发到对话里。\n原文：${text.slice(0,200)}${text.length>200?'…':''}\n（已默认填 1990-06-15 12:00 仅供排盘，可改）`;
+      $('ai-status').textContent = '⚠ 解析失败，已转为补充重点（仍可继续）';
+      $('ai-status').classList.add('err');
+      return true;  // 不阻断：用户可继续
+    }
+  }catch(e){
+    $('ai-status').textContent = '✗ 网络错误：'+e.message;
+    $('ai-status').classList.add('err');
+    return false;
+  }
+}
+
+// ============================================================
+// 农历 → 公历
+// ============================================================
+async function lunarFillFromPicker(){
+  const ly = _wheelSel['wp-lunar-year'].lyear;
+  const lm = _wheelSel['wp-lunar-month'].lmonth;
+  const ld = _wheelSel['wp-lunar-day'].lday;
+  const lh = _wheelSel['wp-lunar-hour'].lhour;
+  const r = await fetch('/api/lunar-to-solar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({lunar_year:ly, lunar_month:lm, lunar_day:ld, leap:false})});
+  const d = await r.json();
+  if(!d.ok){
+    $('pillars-status').textContent = d.error || '农历转换失败';
+    $('pillars-status').classList.add('err');
+    return false;
+  }
+  $('f-date').value = `${d.solar_year}-${String(d.solar_month).padStart(2,'0')}-${String(d.solar_day).padStart(2,'0')}`;
+  $('f-time').value = `${String(lh).padStart(2,'0')}:00`;
+  $('f-vague').checked = false;
+  $('pillars-status').textContent = `已转公历：${d.solar_year}年${d.solar_month}月${d.solar_day}日 ${lh}时`;
+  $('pillars-status').classList.remove('err');
+  return true;
+}
+
+// ============================================================
+// 四柱 → 公历
+// ============================================================
+function _initPillarsSelects(){
+  // 四柱全部用 60 甲子（最准）。月柱/时柱的天干需要按"五虎遁"（月柱）和"五鼠遁"（时柱）从年/日柱推导，
+  // 大多数人不熟——推荐先用「AI 识别」tab 把"丙戌 午 己未 庚午"这种简写直接粘贴，自动出四柱。
+  const stems = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+  const branches = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+  const jiazi = []; for(let i=0;i<60;i++) jiazi.push(stems[i%10]+branches[i%12]);
+  const fillFull = (sel)=>{
+    sel.innerHTML = '<option value="">？</option>' + jiazi.map(j=>`<option value="${j}">${j}</option>`).join('');
+  };
+  fillFull($('p-ygz')); fillFull($('p-mgz')); fillFull($('p-dgz')); fillFull($('p-hgz'));
+}
+_initPillarsSelects();
+
+async function pillarsFillFromPicker(){
+  const ygz = $('p-ygz').value;
+  const mgz = $('p-mgz').value;
+  const dgz = $('p-dgz').value;
+  const hgz = $('p-hgz').value;
+  if(!dgz || !hgz){
+    $('pillars-status').textContent = '日柱和时柱必填（仅靠年/月柱无法唯一确定）';
+    $('pillars-status').classList.add('err');
+    return false;
+  }
+  $('pillars-status').textContent = '反推公历日期…';
+  $('pillars-status').classList.remove('err');
+  // 估算扫描年份窗口：60 甲子一轮。
+  // 1) 用户给了年柱：扫过去 60 年 + 未来 30 年找最近的 5 个该年柱年
+  // 2) 否则默认以今天为中心 ±5 年
+  const today = new Date();
+  let yearLo = today.getFullYear() - 5;
+  let yearHi = today.getFullYear() + 5;
+  if(ygz){
+    const stems = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+    const branches = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+    const jiazi = []; for(let i=0;i<60;i++) jiazi.push(stems[i%10]+branches[i%12]);
+    const idxTarget = jiazi.indexOf(ygz);
+    if(idxTarget >= 0){
+      // 基准：1984 癸亥在 jiazi[59]；用 6 月 1 日估算（含立春），
+      // 即 (y-1984+59) % 60 大致对应 lunar_python.getEightChar().getYear() 在 6-1 那天
+      const cands = [];
+      for(let y = today.getFullYear() - 90; y <= today.getFullYear() + 20; y++){
+        const idx = (y - 1984 + 59) % 60;
+        if(idx === idxTarget) cands.push(y);
+      }
+      if(cands.length){
+        yearLo = Math.min(...cands) - 1;
+        yearHi = Math.max(...cands) + 1;
+      }
+    }
+  }
+  // 给年柱时 search_range=80（覆盖前后 80 年，60 甲子中至少 2-3 个周期）；
+  // 没给年柱时 search_range=10 让日柱/时柱细筛。
+  // 服务端实测 1.6 秒能完成 90 年扫描。
+  const searchRange = ygz ? 80 : 10;
+  const r = await fetch('/api/pillars-to-solar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({year_ganzhi:ygz, month_ganzhi:mgz, day_ganzhi:dgz, hour_ganzhi:hgz, gender:$('f-gender').value, search_range: searchRange})});
+  const d = await r.json();
+  if(!d.ok){
+    $('pillars-status').textContent = d.error || '反推失败';
+    $('pillars-status').classList.add('err');
+    return false;
+  }
+  const c = d.candidates[0];  // 取第一个候选
+  $('f-date').value = `${c.year}-${String(c.month).padStart(2,'0')}-${String(c.day).padStart(2,'0')}`;
+  const h = (c.matched_hours && c.matched_hours[0]) || 12;
+  $('f-time').value = `${String(h).padStart(2,'0')}:00`;
+  $('f-vague').checked = false;
+  $('pillars-status').textContent = `已反推公历：${c.year}年${c.month}月${c.day}日 ${h}时（候选 ${d.count} 个，已取第一个）`;
+  $('pillars-status').classList.remove('err');
+  return true;
+}
+
+// 模式切换：每个模式独立会话。切换时保存当前模式状态，恢复目标模式（若目标已有会话则不重排、不重生成）。
+// 切换动作本身永远允许（即使某个模式正在生成），生成状态随各模式独立保存/恢复。
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.onclick = async () => {
+    const newMode = tab.dataset.mode;
+    // 注意：这里不去除「newMode === mode」的早退判断，因为旧版本曾因该判断造成「模式卡死」。
+    // 改为：只要点击的 tab 不是当前激活的，就无条件执行切换；UI 与全局 mode 不一致时也强制同步。
+    if(newMode === mode && tab.classList.contains('active')) return;
+    // 1. 保存当前模式的会话状态（含其生成中状态）
+    saveSession(mode);
+    // 2. 切换到目标模式
+    mode = newMode;
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    // 3. 若目标模式已有会话，直接恢复（含其 busy/加载中状态）；否则（已有出生信息）自动排盘
+    if(sessions[newMode].ready){
+      restoreSession(newMode);
+      // 合参排盘缓存的子盘只有盘面、没有基本盘解读：首次切过去时懒加载一次第一阶段解读
+      if(sessions[newMode].needReading){
+        sessions[newMode].needReading = false;
+        await streamChat(newMode);
+      }
+    } else if(lastBase){
+      await doStart(false);
+    }
+  };
+});
+
+// 保存当前模式的会话（盘面 + 对话 + 盘面展示HTML + 生成中状态）
+function saveSession(m){
+  if(!sessions[m].ready) return;
+  sessions[m].history = history;      // history 本就是该 session 的引用，保持同源
+  sessions[m].chart = chart;
+  sessions[m].busy = busy;
+  sessions[m].chartHtml = {
+    bazi: $('bazi-chart').innerHTML,
+    vedic: $('vedic-chart').innerHTML,
+    baziVisible: $('bazi-chart').style.display !== 'none',
+    vedicVisible: $('vedic-chart').style.display !== 'none',
+  };
+}
+
+// 从 history 重建对话（替代 DOM 快照，彻底避免异步生成与快照不一致）。
+// 若该模式正在生成，额外补一个"加载中"占位。
+function renderHistory(msgsEl, hist, busyFlag){
+  msgsEl.innerHTML = '';
+  hist.forEach(h => {
+    // master 回复统一清洗排版符号（兜底历史里残留的星号/井号），user 消息原样保留
+    const content = h.role === 'user' ? h.content : cleanMasterText(h.content);
+    addMsg(h.role === 'user' ? 'user' : 'master', content, msgsEl);
+  });
+  if(busyFlag){
+    const wrap = document.createElement('div');
+    wrap.className = 'msg master';
+    const who = document.createElement('div');
+    who.className = 'who'; who.textContent = '玄机先生';
+    const bodyEl = document.createElement('span');
+    bodyEl.style.display = 'block';
+    const loading = document.createElement('div');
+    loading.className = 'loading';
+    loading.innerHTML = '<span class="spinner"></span><span>加载中…</span>';
+    bodyEl.appendChild(loading);
+    wrap.appendChild(who); wrap.appendChild(bodyEl);
+    msgsEl.appendChild(wrap);
+  }
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+// 恢复目标模式的会话（不清空、不重生成），并同步该模式的生成中状态到界面。
+// history 直接引用该 session 的 history 数组，后续 push 天然同步，无需双份。
+function restoreSession(m){
+  const s = sessions[m];
+  chart = s.chart;
+  history = s.history;
+  busy = s.busy;
+  renderHistory($('msgs'), s.history, s.busy);
+  // 依据 chart 结构重新渲染盘面（比 chartHtml 快照更稳健，combo 缓存/档案恢复都适用）
+  if(m === 'bazi') renderChart(s.chart);
+  else if(m === 'vedic') renderVedic(s.chart);
+  else if(m === 'combo') renderCombo(s.chart);
+  $('form-panel').style.display = 'none';
+  $('chart-panel').style.display = 'block';
+  $('chat').style.display = 'block';
+  $('chips').style.display = busy ? 'none' : 'flex';
+  $('renji-sub').style.display = 'none';
+  $('other-panel').style.display = 'none';
+  $('btn-send').disabled = busy;
+  $('chat-input').disabled = busy;
+  document.querySelectorAll('.chip').forEach(c => c.disabled = busy);
+  $('msgs').scrollTop = $('msgs').scrollHeight;
+}
+
+function addMsg(role, text, container){
+  const div = document.createElement('div');
+  div.className = 'msg ' + (role === 'user' ? 'user' : 'master');
+  const who = document.createElement('div');
+  who.className = 'who';
+  who.textContent = role === 'user' ? '你' : '玄机先生';
+  const body = document.createElement('span');
+  body.textContent = text;
+  div.appendChild(who); div.appendChild(body);
+  const target = container || $('msgs');
+  target.appendChild(div);
+  target.scrollTop = target.scrollHeight;
+  return body;
+}
+
+async function streamChat(forMode){
+  const myMode = forMode || mode;   // 优先用调用方锁定的模式（排盘场景），否则用当前界面模式
+  const mySession = sessions[myMode];
+  busy = true;
+  mySession.busy = true;
+  $('btn-send').disabled = true; $('chat-input').disabled = true;
+  $('btn-other').disabled = true;
+  document.querySelectorAll('.chip').forEach(c => c.disabled = true);
+  // 先生成一个"加载中"占位（圆圈 + 文字），生成完再一次性放文字
+  const wrap = document.createElement('div');
+  wrap.className = 'msg master';
+  const who = document.createElement('div');
+  who.className = 'who'; who.textContent = '玄机先生';
+  const bodyEl = document.createElement('span');
+  bodyEl.style.display = 'block';
+  const loading = document.createElement('div');
+  loading.className = 'loading';
+  loading.innerHTML = '<span class="spinner"></span><span>加载中…</span>';
+  bodyEl.appendChild(loading);
+  wrap.appendChild(who); wrap.appendChild(bodyEl);
+  $('msgs').appendChild(wrap);
+  $('msgs').scrollTop = $('msgs').scrollHeight;
+
+  let acc = '';
+  let gotData = false;
+  let firstDelta = false;   // 是否已收到第一个字（用于切换"加载中"为正文）
+  try{
+    // 用发起时锁定的 chart / history / mode 发起请求，避免切换后串盘
+    const reqBody = {chart: mySession.chart, messages: mySession.history, mode: myMode};
+    // user_note：求测者在「AI 识别 / 补充重点」里写的重要信息。
+    // 这是求测者主动强调的、贯穿整个解读生命周期的重点，必须「每一次请求」都带上，
+    // 让先生在初判、追问、定向分析每一轮都能记得并呼应，而不是只在首次出现一次就丢掉。
+    const un = (mySession.userNote != null) ? mySession.userNote : (lastBase && lastBase.user_note);
+    if(un){
+      reqBody.user_note = un;
+    }
+    // 合婚/关系解读：把对方完整八字盘一起传给后端做合盘（只随本次提问带一次）
+    if(currentOtherChart){
+      reqBody.other_chart = currentOtherChart;
+      currentOtherChart = null;   // 一次性使用，避免后续正常提问被误当合盘
+    }
+    const resp = await fetch('/api/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(reqBody)
+    });
+    if(!resp.ok || !resp.body){
+      throw new Error('HTTP ' + resp.status);
+    }
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    // 超时保护：超过 90 秒无任何数据视为中断（配合后端更快的模型降级）
+    const timer = setTimeout(() => { reader.cancel().catch(()=>{}); }, 90000);
+    let receivedDone = false;
+    while(true){
+      const {done, value} = await reader.read();
+      if(done) break;
+      gotData = true;
+      buf += dec.decode(value, {stream:true});
+      const parts = buf.split('\n\n');
+      buf = parts.pop();
+      for(const part of parts){
+        if(!part.startsWith('data:')) continue;
+        let payload;
+        try{ payload = JSON.parse(part.slice(5)); }catch(e){ continue; }
+        if(payload.delta){
+          acc += payload.delta;
+          // 首次收到文字：把"加载中"占位切换成正文，之后边收边追加（渐进打字效果）
+          if(!firstDelta){
+            firstDelta = true;
+            bodyEl.innerHTML = '';
+          }
+          bodyEl.textContent = cleanMasterText(acc);
+          $('msgs').scrollTop = $('msgs').scrollHeight;
+        }
+        if(payload.error){ acc += '\n[出错：' + payload.error + ']'; }
+        if(payload.done){ receivedDone = true; }
+      }
+      if(receivedDone) break;
+    }
+    clearTimeout(timer);
+    if(!acc && !gotData){
+      throw new Error('EMPTY');
+    }
+    // 生成完成，确保正文完整显示
+    const finalText = cleanMasterText(acc);
+    bodyEl.innerHTML = '';
+    bodyEl.textContent = finalText;
+    mySession.history.push({role:'assistant', content: finalText});
+    // 登录态：把当前 mode 的最新 history 同步到账号（用户消息由 send 调用方负责之前已同步过）
+    syncHistoryForMode(myMode);
+  }catch(e){
+    // 中断或异常：给明确提示，保留已生成的部分。
+    // 错误情况不把错误文本作为 assistant 消息写进 history——保留 history 干净，
+    // 这样后续重试（切回 tab / 重新发问）能基于真实对话上下文，不被错误消息污染。
+    // 唯一例外：流式读到一半中断，partial 仍有实质文字，按"半成品"暂存以便用户能继续往下聊。
+    bodyEl.innerHTML = '';
+    const partialText = acc ? cleanMasterText(acc) : '';
+    const looksLikeError = !acc || /^\s*\[出錯|^请请求被|服务异常/.test(acc);
+    if(acc && !looksLikeError){
+      bodyEl.textContent = partialText + '\n\n（回复生成到一半中断了，点下方按钮或重新发送即可继续）';
+      mySession.history.push({role:'assistant', content: partialText});
+      syncHistoryForMode(myMode);
+    }else{
+      bodyEl.textContent = '抱歉，回复没能生成出来，可能网络或服务有些波动，请点「呈上」重新发送一次。';
+    }
+  }
+  $('msgs').scrollTop = $('msgs').scrollHeight;
+  busy = false;
+  mySession.busy = false;
+  // 只有当前仍停留在该模式时才刷新控件状态（切到别的模式时由 restoreSession 接管）
+  if(myMode === mode){
+    $('btn-send').disabled = false; $('chat-input').disabled = false;
+    $('btn-other').disabled = false;
+    document.querySelectorAll('.chip').forEach(c => c.disabled = false);
+    $('chips').style.display = 'flex';
+    $('chat-input').focus();
+  }
+}
+
+async function send(text){
+  if(busy || !text.trim()) return;
+  const myMode = mode;                 // 锁定当前模式
+  history.push({role:'user', content: text.trim()});
+  addMsg('user', text.trim());
+  hideChips();
+  await streamChat(myMode);
+  showChips();
+}
+
+function hideChips(){ $('chips').style.display = 'none'; $('renji-sub').style.display = 'none'; $('other-panel').style.display = 'none'; }
+function showChips(){ $('chips').style.display = 'flex'; }
+
+$('btn-send').onclick = () => { const v = $('chat-input').value; $('chat-input').value=''; send(v); };
+$('chat-input').addEventListener('keydown', e => { if(e.key==='Enter'){ const v=$('chat-input').value; $('chat-input').value=''; send(v);} });
+
+// 对方信息面板的用途：'hehun' 合婚 或 'renji-person' 人际·具体某人
+let otherMode = 'hehun';
+// 合婚/关系解读时，对方完整八字盘会通过本变量传给后端注入 system prompt 做合盘
+let currentOtherChart = null;
+
+// 打开对方面板，设置标题与用途
+function openOtherPanel(mode, title){
+  otherMode = mode;
+  $('other-title').textContent = title;
+  $('other-err').style.display = 'none';
+  $('chips').style.display = 'none';
+  $('renji-sub').style.display = 'none';
+  $('other-panel').style.display = 'block';
+  // 登录态：拉关系人列表填充下拉
+  refreshOtherContactSelect();
+}
+
+// chip 点击：普通方向直接发；「合婚」打开对方面板；「人际」展开二级选择；「自由提问」聚焦输入框
+document.querySelectorAll('#chips .scene-card, #chips .chip').forEach(c => {
+  c.onclick = () => {
+    if(c.dataset.special === 'hehun'){
+      openOtherPanel('hehun', '对方的信息（合婚）');
+    } else if(c.dataset.special === 'renji'){
+      $('chips').style.display = 'none';
+      $('renji-sub').style.display = 'flex';
+    } else if(c.dataset.special === 'free'){
+      $('chat-input').focus();
+      $('chat-input').placeholder = '直接告诉先生你想看的方向，如：明年适不适合创业…';
+    } else if(c.dataset.q){
+      send(c.dataset.q);
+    }
+  };
+});
+// 人际二级选择：具体某人→对方面板；整体人际关系→直接发；返回→回主 chips
+document.querySelectorAll('#renji-sub .chip').forEach(c => {
+  c.onclick = () => {
+    if(c.dataset.special === 'renji-person'){
+      openOtherPanel('renji-person', '对方的信息（这个人）');
+    } else if(c.dataset.special === 'back'){
+      $('renji-sub').style.display = 'none';
+      $('chips').style.display = 'flex';
+    } else if(c.dataset.q){
+      send(c.dataset.q);
+    }
+  };
+});
+
+// 提交对方信息：排对方盘面（八字），组装成消息发给玄机先生做合盘解读
+$('btn-other').onclick = async () => {
+  const err = $('other-err');
+  err.style.display = 'none';
+  const d = $('o-date').value, t = $('o-time').value;
+  if(!d){ err.textContent = '请至少填写对方的出生日期（时间实在不知道可留空）'; err.style.display='block'; return; }
+  const [y,m,dd] = d.split('-').map(Number);
+  let hh = 12, mm = 0;
+  if(t){ const p = t.split(':').map(Number); hh = p[0]; mm = p[1]; }
+  const otherBase = {
+    year:y, month:m, day:dd, hour:hh, minute:mm,
+    gender: $('o-gender').value,
+    time_precise: !!t,
+    place: $('o-place').value
+  };
+  const rel = ($('o-rel').value || '').trim();
+  const relText = rel ? rel : (otherMode === 'hehun' ? '对象' : '对方');
+  // 根据当前模式排出对方盘：印占模式排印占盘（做印占合盘），否则排八字盘（做八字合盘）
+  const isVedic = mode === 'vedic';
+  let otherChart = null;
+  try{
+    const api = isVedic ? '/api/vedic' : '/api/bazi';
+    const resp = await fetch(api, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(otherBase)});
+    const data = await resp.json();
+    if(data.ok){ otherChart = data.chart; }
+  }catch(e){ /* 对方排盘失败则只按生日文本解读 */ }
+
+  // 把对方完整盘挂到全局，让 streamChat 随请求传给后端做合盘（比只给"日主"信息丰富得多）
+  currentOtherChart = otherChart || null;
+
+  // 组装消息文本，把对方信息完整交给玄机先生
+  const timeStr = t ? (t + ' 左右') : '具体时间不详';
+  const panName = isVedic ? '星盘' : '八字';
+  let msg;
+  if(otherMode === 'hehun'){
+    msg = '我想合婚：我和对方的' + panName + '合不合、这段关系前景如何。\n我的信息已在上面命盘中。\n对方信息：' + relText + '，' + otherBase.gender + '，生于 ' + y + '年' + m + '月' + dd + '日 ' + timeStr + '，出生地 ' + otherBase.place + '。' + (otherChart ? '' : '（对方' + panName + '未排出，只能按生日粗看）');
+  } else {
+    msg = '我想看看我和' + relText + '这个人的关系（是贵人还是耗神、该怎么相处）。\n我的信息已在上面命盘中。\n对方信息：' + otherBase.gender + '，生于 ' + y + '年' + m + '月' + dd + '日 ' + timeStr + '，出生地 ' + otherBase.place + '。' + (otherChart ? '' : '（对方' + panName + '未排出，只能按生日粗看）');
+  }
+  $('other-panel').style.display = 'none';
+  // 登录态：自动把对方信息保存为关系人（让用户下次可一键复用）
+  if(currentUser){
+    const rel = ($('o-rel').value || '').trim();
+    const labelGuess = (rel && rel !== '对象' && rel !== '对方') ? rel :
+                       (otherMode === 'hehun' ? '合婚对象' : '这位朋友');
+    authApi('/api/contacts', {
+      label: labelGuess,
+      relation: otherMode === 'hehun' ? 'spouse' : 'friend',
+      base: otherBase,
+      chart: otherChart || {},
+      note: '',
+    }).then(()=> refreshOtherContactSelect());
+  }
+  await send(msg);
+};
+
+
+
+function renderVedic(v){
+  const lg = v.lagna;
+  $('vedic-lagna').innerHTML = `
+    <div class="big">上升 · ${lg.sign_cn}座</div>
+    <div class="sub">升宿 ${lg.nakshatra} · ${lg.degree}</div>`;
+  $('vedic-planets').innerHTML = v.planets.map(p => `
+    <div class="vplanet">
+      <div class="pn">${p.planet}${p.retro ? ' ℞' : ''}</div>
+      <div class="ps">${p.sign_cn}</div>
+      <div class="ph">第${p.house}宫 · ${p.degree}</div>
+    </div>`).join('');
+  const d = v.dasha && v.dasha[0];
+  const k = v.karakas || {};
+  const yogas = Object.keys(v.yogas || {}).filter(y => v.yogas[y]);
+  $('vedic-meta').innerHTML = `
+    <span class="tag">月亮宿 <b>${v.moon_nakshatra.name}</b></span>
+    <span class="tag">主运 <b>${d ? d.md_planet : '—'}</b></span>
+    ${d && d.ad_planet ? `<span class="tag">次运 <b>${d.ad_planet}</b></span>` : ''}
+    ${k.DK ? `<span class="tag">配偶星 <b>${k.DK}</b></span>` : ''}
+    ${yogas.length ? `<span class="tag">格局 <b>${yogas.join('、')}</b></span>` : ''}`;
+  $('bazi-chart').style.display = 'none';
+  $('vedic-chart').style.display = 'block';
+  $('chart-panel').style.display = 'block';
+  $('chat').style.display = 'block';
+}
+
+// 中西合参：同时渲染八字与印占，两盘并排显示（不互斥隐藏）
+function renderCombo(c){
+  if(c && c.bazi) renderChart(c.bazi);
+  else if(c && c.day_master) renderChart(c);
+  if(c && c.vedic) renderVedic(c.vedic);
+  // combo 两盘都显示；若印占缺失（降级）则只显示八字
+  $('bazi-chart').style.display = 'block';
+  $('vedic-chart').style.display = (c && c.vedic) ? 'block' : 'none';
+  $('chart-panel').style.display = 'block';
+  $('chat').style.display = 'block';
+}
+
+function renderChart(c){
+  const names = {year:'年柱', month:'月柱', day:'日柱', time:'时柱'};
+  const wuColor = {金:'var(--wu-jin)', 木:'var(--wu-mu)', 水:'var(--wu-shui)', 火:'var(--wu-huo)', 土:'var(--wu-tu)'};
+  const wuColorHex = {金:'#e8e0d2', 木:'#8fb573', 水:'#7fa8c9', 火:'#d0785a', 土:'#c9a86a'};
+  // 日主主视觉
+  const dm = c.day_master_element || '';
+  $('day-master').innerHTML = `
+    <span class="dm-label">日 主</span>
+    <div style="text-align:center">
+      <div class="dm-big" style="color:${wuColorHex[dm] || 'var(--gold)'}">${c.day_master}</div>
+      <div class="dm-sub">${dm}命</div>
+    </div>
+    <span class="dm-label" style="opacity:.7">${c.zodiac || ''}</span>`;
+  // 四柱卡片：天干地支按五行配色
+  $('pillars').innerHTML = Object.keys(names).map(k => {
+    const p = c.pillars[k];
+    const g = p.ganzhi[0], z = p.ganzhi[1];
+    const ge = p.gan_element, ze = p.zhi_element;
+    return `
+    <div class="pillar">
+      <div class="t">${names[k]}</div>
+      <div class="gz">
+        <span class="g" style="color:${wuColorHex[ge] || 'var(--gold)'}">${g}</span>
+        <span class="z" style="color:${wuColorHex[ze] || 'var(--gold)'}">${z}</span>
+      </div>
+      <div class="n">${p.nayin}</div>
+    </div>`;
+  }).join('');
+  const w = c.wuxing_count;
+  const max = Math.max(...Object.values(w), 1);
+  $('chart-meta').innerHTML = `
+    <span class="tag">日主 <b>${c.day_master} · ${c.day_master_element}</b></span>
+    <span class="tag">农历 <b>${c.lunar.replace('农历','')}</b></span>
+    <span class="tag">生肖 <b>${c.zodiac}</b></span>
+    <span class="tag">现行大运 <b>${c.current_dayun || '—'}</b></span>
+    <span class="tag">五行 <b>${c.wuxing_missing.length ? '缺' + c.wuxing_missing.join('、') : '俱全'}</b></span>`;
+  $('wuxing-bars').innerHTML = Object.entries(w).map(([k,v]) => `
+    <div class="bar-row"><span style="width:2em;color:${wuColorHex[k] || 'var(--text)'}">${k}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${v/max*100}%;background:${wuColorHex[k] || 'var(--gold-dim)'}"></div></div>
+      <span>${v}</span></div>`).join('');
+  $('bazi-chart').style.display = 'block';
+  $('vedic-chart').style.display = 'none';
+  $('chart-panel').style.display = 'block';
+  $('chat').style.display = 'block';
+}
+
+$('btn-start').onclick = async () => {
+  const err = $('form-err');
+  err.style.display = 'none';
+  // 1) 根据当前 tab 准备数据：先填好 f-date/f-time（如未填）
+  if(_activeFormTab === 'ai'){
+    const ok = await aiFillFromText();
+    if(!ok) return;
+  }else if(_activeFormTab === 'solar'){
+    _syncSolarToHidden();
+    _syncSolarVagueFromHour();
+  }else if(_activeFormTab === 'lunar'){
+    const ok = await lunarFillFromPicker();
+    if(!ok) return;
+  }else if(_activeFormTab === 'pillars'){
+    const ok = await pillarsFillFromPicker();
+    if(!ok) return;
+  }
+  // 2) 校验
+  const d = $('f-date').value, t = $('f-time').value;
+  if(!d || !t){ err.textContent = '请填写出生日期和时间'; err.style.display='block'; return; }
+  const [y,m,dd] = d.split('-').map(Number);
+  const [hh,mm] = t.split(':').map(Number);
+  lastBase = {
+    year:y, month:m, day:dd, hour:hh, minute:mm,
+    gender:$('f-gender').value,
+    time_precise: !$('f-vague').checked,
+    place: $('f-place').value
+  };
+  // 3) 拼装 user_note（AI 识别或任何 tab 都可补充）
+  //    - AI tab：识别成功时，note = 用户在「补充重点」里写的（可能为空）
+  //    - AI tab：识别失败时，note = 原文（让先生看原文）+ 用户补充重点
+  //    - 其他 tab：note = ''（用户没填）
+  let userNote = '';
+  if(_activeFormTab === 'ai'){
+    userNote = ($('ai-note').value || '').trim();
+    if(!_aiFilled){
+      // 解析失败：把原文附上，让先生能自然回应
+      const orig = ($('ai-text').value || '').trim();
+      userNote = (orig ? `【求测者自述（AI 未识别出字段）】\n${orig}\n\n` : '') + userNote;
+    }
+  }
+  lastBase.user_note = userNote || undefined;
+  await doStart(true);
+};
+
+async function doStart(fromForm){
+  const err = $('form-err');
+  err.style.display = 'none';
+  const base = lastBase;
+  const btn = $('btn-start');
+  const myMode = mode;              // 锁定本次排盘所属模式，避免切换后串模式
+  const mySession = sessions[myMode];
+  btn.disabled = true; btn.textContent = '排盘中…';
+  // 记录当前界面模式，用于判断排盘期间用户是否已切走（切走则不再碰 DOM，只写 session）
+  const onScreen = myMode === mode;
+  try{
+    if(myMode === 'vedic'){
+      const resp = await fetch('/api/vedic', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(base)});
+      const data = await resp.json();
+      if(!data.ok){ err.textContent = data.error; err.style.display='block'; return; }
+      chart = data.chart;
+      if(onScreen){ $('form-panel').style.display = 'none'; renderVedic(chart); }
+      history = [{role:'user', content:'（求测者刚提交星盘，请开始第一阶段·初判）'}];
+    } else if(myMode === 'combo'){
+      const [r1, r2] = await Promise.all([
+        fetch('/api/bazi', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(base)}),
+        fetch('/api/vedic', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(base)})
+      ]);
+      const d1 = await r1.json(), d2 = await r2.json();
+      if(!d1.ok){ err.textContent = d1.error; err.style.display='block'; return; }
+      if(!d2.ok){
+        // 印占失败：只把盘面降级为纯八字，**不修改全局 mode 和 tab UI**（避免后续 tab 切换早退）
+        // 这样用户看到的是「合参这次少了印占」，但 mode 仍为 combo，下次点其它 tab 仍能正常切换
+        chart = d1.chart;
+      } else {
+        chart = { bazi: d1.chart, vedic: d2.chart };
+      }
+      if(onScreen){
+        $('form-panel').style.display = 'none';
+        renderCombo(chart);
+      }
+      // 合参排盘时，把八字盘与印占盘也分别缓存到各自模式，
+      // 这样之后点「中式八字」/「西式印占」能秒切（走 restoreSession 而非重新排盘）
+      if(chart.bazi){
+        sessions.bazi.chart = chart.bazi;
+        sessions.bazi.history = [{role:'user', content:'（求测者刚提交盘面，请开始第一阶段·初判）'}];
+        sessions.bazi.userNote = lastBase.user_note || null;
+        sessions.bazi.ready = true;
+        sessions.bazi.needReading = true;   // 盘面就绪，但基本盘解读尚未生成，待用户切过去时懒加载
+      }
+      if(chart.vedic){
+        sessions.vedic.chart = chart.vedic;
+        sessions.vedic.history = [{role:'user', content:'（求测者刚提交星盘，请开始第一阶段·初判）'}];
+        sessions.vedic.userNote = lastBase.user_note || null;
+        sessions.vedic.ready = true;
+        sessions.vedic.needReading = true;
+      }
+      history = [{role:'user', content:'（求测者刚提交生辰，请开始中西合参第一阶段·初判）'}];
+    } else {
+      const resp = await fetch('/api/bazi', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(base)});
+      const data = await resp.json();
+      if(!data.ok){ err.textContent = data.error; err.style.display='block'; return; }
+      chart = data.chart;
+      if(onScreen){ $('form-panel').style.display = 'none'; renderChart(chart); }
+      history = [{role:'user', content:'（求测者刚提交盘面，请开始第一阶段·初判）'}];
+    }
+    // 盘面已就绪：立即把 chart/history 挂到 session 并标记 ready，
+    // 这样首次解读尚未结束用户也能切走、切回时不丢盘面
+    mySession.chart = chart;
+    mySession.history = history;
+    mySession.userNote = lastBase.user_note || null;   // 把「补充重点」挂到本模式 session，贯穿后续每轮解读
+    mySession.ready = true;
+    // 先建档（登录态），再解读——这样 streamChat 内部 syncHistoryForMode 时 profileId 已就位，
+    // 首次基本盘解读也能正确写回档案，不会因建档晚于解读而丢失
+    const pid = await syncProfileForCurrentMode(myMode);
+    // 合参排盘时，把建档 id 共享给已缓存的八字/印占子盘
+    if(myMode === 'combo' && pid){
+      if(chart.bazi) sessions.bazi.profileId = pid;
+      if(chart.vedic) sessions.vedic.profileId = pid;
+    }
+    // 清空旧对话，重新解读（仅在仍停留本模式时操作 DOM）
+    if(onScreen) $('msgs').innerHTML = '';
+    await streamChat(myMode);
+    if(onScreen) $('chips').style.display = 'flex';
+    // 解读完成后，确保 chart/history 与最新状态同步保存
+    mySession.chart = chart;
+    mySession.history = history;
+    saveSession(myMode);
+  }finally{
+    btn.disabled = false; btn.textContent = '开 始 排 盘';
+  }
+}
+
+// 启动时检查会话：若有 token 则恢复用户态，必要时弹强制改密
+window.addEventListener('DOMContentLoaded', () => {
+  checkSession();
+  // 登录框按 Enter 直接登录
+  ['login-email','login-password'].forEach(id => {
+    $(id).addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
+  });
+  ['reg-email'].forEach(id => {
+    $(id).addEventListener('keydown', e => { if(e.key === 'Enter') doRegister(); });
+  });
+  // 改密表单按 Enter 提交
+  ['cp-old','cp-new','cp-new2'].forEach(id => {
+    $(id).addEventListener('keydown', e => { if(e.key === 'Enter') doChangePassword(); });
+  });
+  // 点遮罩关闭普通 modal；强制改密 modal 不允许点遮罩关闭
+  $('auth-modal').addEventListener('click', e => {
+    if(e.target === $('auth-modal')) closeAuth();
+  });
+
+  $('fp-code').addEventListener('keydown', e => { if(e.key === 'Enter') $('fp-new-pw').focus(); });
+  $('fp-new-pw2').addEventListener('keydown', e => { if(e.key === 'Enter') doResetPw(); });
+  $('fp-email').addEventListener('keydown', e => { if(e.key === 'Enter') doRequestCode(); });
+  // 点遮罩关闭（区分 step2，避免误关）
+  $('fp-modal').addEventListener('click', e => {
+    if(e.target === $('fp-modal')) closeForgotPw();
+  });
+
+});
+</script>
+</body>
+</html>
