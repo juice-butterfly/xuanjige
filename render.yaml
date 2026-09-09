@@ -1,0 +1,20 @@
+# Render 蓝本：一键部署玄机阁
+# 在 Render 控制台「New + → Blueprint」指向本仓库即可自动创建服务。
+services:
+  - type: web
+    name: xuanjige
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: MOCK
+        value: "0"
+      # 以下敏感项请在 Render 控制台「Environment」里填真实值，
+      # 或用 deploy hook 注入；不要写死在这里提交到 git。
+      # - key: ZHIPU_API_KEY
+      #   sync: false
+      # - key: XUANJI_JWT_SECRET
+      #   sync: false
+      # - key: MONGODB_URI
+      #   sync: false
