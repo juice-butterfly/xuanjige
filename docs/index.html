@@ -1052,6 +1052,8 @@ function loadVedicModule(){
  * ===================================================================== */
 const VEDIC_FILES = [
   { path: 'vedic.js', size: 14803 },
+  { path: 'swisseph-wasm/src/swisseph.js', size: 66338 },
+  { path: 'swisseph-wasm/wasm/swisseph.js', size: 74272 },
   { path: 'swisseph-wasm/wasm/swisseph.wasm', size: 561871 },
   { path: 'swisseph-wasm/wasm/swisseph.data', size: 2151204 },
 ];
@@ -1059,6 +1061,7 @@ const warm = {
   started: false, done: false, error: null, loaded: 0,
   total: VEDIC_FILES.reduce((a, f) => a + f.size, 0),
   promise: null, resolve: null,
+  buffers: {},          // path -> ArrayBuffer，下载完直接喂回 Emscripten
 };
 
 const warmProgress = () => warm.total ? Math.min(1, warm.loaded / warm.total) : 0;
@@ -1088,26 +1091,70 @@ function warmupVedic(){
   warm.started = true;
   (async () => {
     for (const f of VEDIC_FILES){
-      const res = await fetch(f.path, { cache: 'force-cache' });
+      const res = await fetch(f.path);
       if (!res.ok) throw new Error(`${f.path} → HTTP ${res.status}`);
+      const chunks = [];
+      let got = 0;
       if (res.body && res.body.getReader){
         const reader = res.body.getReader();
         for (;;){
           const { done, value } = await reader.read();
           if (done) break;
+          chunks.push(value);
+          got += value.byteLength;
           warm.loaded += value.byteLength;
           updateProgUI();
         }
       } else {
-        const buf = await res.arrayBuffer();
-        warm.loaded += buf.byteLength;
+        const ab = await res.arrayBuffer();
+        chunks.push(new Uint8Array(ab));
+        got = ab.byteLength;
+        warm.loaded += got;
         updateProgUI();
       }
+      /* 留下字节本体：后面 Emscripten 要这两份文件时直接由内存喂回去，
+         不依赖 HTTP 缓存是否命中（实测只靠缓存偶尔仍会重下）。 */
+      const all = new Uint8Array(got);
+      let off = 0;
+      for (const ch of chunks){ all.set(ch, off); off += ch.byteLength; }
+      warm.buffers[f.path] = all.buffer;
     }
     warm.done = true;
   })().catch(e => { warm.error = e; warm.done = true; })
      .finally(() => { updateProgUI(); if (warm.resolve) warm.resolve(); });
   return warm;
+}
+
+/* 临时把 window.fetch 换成「命中预载缓存就直接返回内存里的字节」。
+   Emscripten 胶水层取 swisseph.wasm / swisseph.data 走的就是 fetch，
+   所以这样能保证实例化零网络等待；缺某个文件时原样透传给真 fetch。 */
+function unlockFetchWithWarmBuffers(){
+  const orig = window.fetch;
+  const abs = {};
+  Object.keys(warm.buffers).forEach(p => { abs[new URL(p, document.baseURI).href] = p; });
+  let restored = false;
+  window.fetch = function(input, init){
+    try {
+      const url = (typeof input === 'string' ? input : (input && input.url) || '').split('#')[0];
+      const p = abs[url];
+      if (p){
+        const buf = warm.buffers[p];
+        const isWasm = p.endsWith('.wasm');
+        return Promise.resolve(new Response(buf, {
+          status: 200,
+          statusText: 'OK (from warm cache)',
+          headers: {
+            'Content-Type': isWasm ? 'application/wasm' : 'application/octet-stream',
+            'Content-Length': String(buf.byteLength),
+          },
+        }));
+      }
+    } catch(e){ /* 落到真 fetch */ }
+    return orig.apply(this, arguments);
+  };
+  return function(){
+    if (!restored){ restored = true; window.fetch = orig; }
+  };
 }
 
 function warmProgressHtml(){
@@ -1831,9 +1878,8 @@ function makeKey(i){
 
 function loadingHtml(){
   return `<div class="card"><div class="load-box">
-    <div class="big"><span class="spin"></span>正在载入瑞士星历（约 2.8 MB）</div>
-    印占要算真实的天体位置，需要把星历的一次性拉进来。只有这一回慢，之后都存在浏览器缓存里。<br>
-    排盘全部在你的浏览器里完成，不会发出任何网络请求。
+    <div class="big"><span class="spin"></span>正在实例化星历并排盘</div>
+    天体位置在你的浏览器里现算，不发出任何网络请求。
   </div></div>`;
 }
 
@@ -1846,15 +1892,25 @@ function errHtml(e){
 async function ensureVedic(force){
   if (state.vedic && state.vedic.key === state.key && !force) return state.vedic;
   if (vedicJob) return vedicJob;
+  const keyAtStart = state.key;
+  const input = state.input;
   vedicJob = (async () => {
+    warmupVedic();
+    await waitWarm();
     const mod = await loadVedicModule();
-    const chart = await mod.calcVedic({
-      year: state.input.year, month: state.input.month, day: state.input.day,
-      hour: state.input.hour, minute: state.input.minute,
-      lat: state.input.lat, lon: state.input.lon, place: state.input.place,
-    });
-    state.vedic = { key: state.key, chart, mod };
-    return state.vedic;
+    /* Emscripten 实例化时不再走网络：星历字节已在前面的预载里留在内存。 */
+    const unlock = unlockFetchWithWarmBuffers();
+    try {
+      const chart = await mod.calcVedic({
+        year: input.year, month: input.month, day: input.day,
+        hour: input.hour, minute: input.minute,
+        lat: input.lat, lon: input.lon, place: input.place,
+      });
+      state.vedic = { key: keyAtStart, chart, mod };
+      return state.vedic;
+    } finally {
+      unlock();
+    }
   })();
   try { return await vedicJob; } finally { vedicJob = null; }
 }
