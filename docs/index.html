@@ -307,6 +307,18 @@ button.sample:hover{color:var(--gold);border-color:var(--gold)}
 @keyframes sp{to{transform:rotate(360deg)}}
 .load-box{text-align:center;padding:46px 20px;color:var(--muted);font-size:13.5px;line-height:2}
 .load-box .big{font-size:15.5px;color:var(--text);margin-bottom:10px}
+.load-box .small{font-size:12.5px;line-height:1.95;max-width:52ch;margin:10px auto 0}
+.prog{
+  height:10px;background:var(--panel3);border-radius:6px;overflow:hidden;
+  max-width:420px;margin:16px auto 8px;
+}
+.prog-fill{
+  height:100%;width:0;border-radius:6px;background:var(--gold);
+  transition:width .3s linear;
+}
+.prog-txt{
+  font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.04em;
+}
 .err-box{
   background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--red);
   border-radius:12px;padding:18px 20px;font-size:13.5px;line-height:1.95;color:var(--text);
@@ -521,8 +533,9 @@ footer a{color:var(--gold);text-decoration:none}
     <b>关于这个 Demo：</b>排盘是<b>确定性的历法计算</b>，与线上版同源——八字引擎在 200 例测评集上四柱、日主、生肖、空亡、地势逐项 100% 一致；
     印占引擎改用瑞士星历的 WebAssembly 版本（与线上同一套星历与口径）在浏览器里复算，13 项盘面要素、真恒星年、九步 Vimshottari 大运
     与次运边界均已逐项对齐。<br>
-    与线上完整版的差别只有两处：<b>解读</b>改由你自带 Key 直连模型，<b>档案与登录</b>这类需要服务端存储的功能在静态页上无法提供。
-    命理内容仅供文化体验与娱乐参考。
+    与线上完整版的差别只有两处：<b>解读</b>改由你自带 Key 直连模型，<b>档案与登录</b>这类需要服务端存储的功能在静态页上无法提供。<br>
+    印占首次使用需要下载约 <b>2.7 MB</b> 的瑞士星历（这是口径一致的硬成本），页面打开后会在后台自动预载，
+    之后由浏览器缓存，不再重复下载。命理内容仅供文化体验与娱乐参考。
   </div>
 
   <footer>
@@ -1022,6 +1035,93 @@ function loadVedicModule(){
     vedicModPromise = import('./vedic.js').then(m => (V = m));
   }
   return vedicModPromise;
+}
+
+/* =====================================================================
+ *  星历资源预热
+ *  ---------------------------------------------------------------
+ *  swisseph.wasm + swisseph.data 合计约 2.7 MB，是印占的硬成本（口径一致
+ *  只能靠瑞士星历本体，不能换成简化算法）。但凡在中国大陆访问 GitHub Pages，
+ *  这点体积可能要下几十秒 —— 白屏等几十秒是不能接受的。
+ *
+ *  所以改成：页面一打开就在后台把这两个文件拉进 HTTP 缓存（Pages 给
+ *  Cache-Control: max-age=600），并实时把进度显示出来。用户读八字盘的时间
+ *  里下载已经在跑；等他点开印占，多半已经下完，Emscripten 直接命中缓存。
+ * ===================================================================== */
+const VEDIC_FILES = [
+  { path: 'vedic.js', size: 14803 },
+  { path: 'swisseph-wasm/wasm/swisseph.wasm', size: 561871 },
+  { path: 'swisseph-wasm/wasm/swisseph.data', size: 2151204 },
+];
+const warm = {
+  started: false, done: false, error: null, loaded: 0,
+  total: VEDIC_FILES.reduce((a, f) => a + f.size, 0),
+  promise: null, resolve: null,
+};
+
+const warmProgress = () => warm.total ? Math.min(1, warm.loaded / warm.total) : 0;
+
+function updateProgUI(){
+  const pct = Math.round(warmProgress() * 100);
+  const loadedMb = (warm.loaded / 1048576).toFixed(2);
+  const totalMb = (warm.total / 1048576).toFixed(2);
+  document.querySelectorAll('.prog-block').forEach(el => {
+    const fill = el.querySelector('.prog-fill');
+    const txt = el.querySelector('.prog-txt');
+    if (fill) fill.style.width = pct + '%';
+    if (txt) txt.textContent = `${loadedMb} / ${totalMb} MB　${pct}%`;
+  });
+  const tab = document.querySelector('#tabs button[data-tab=vedic]');
+  if (tab) tab.textContent = !warm.started ? '印占星盘' : (warm.done ? '印占星盘' : `印占星盘 · 预载 ${pct}%`);
+}
+
+function waitWarm(){
+  if (warm.done) return Promise.resolve();
+  if (!warm.promise) warm.promise = new Promise(res => { warm.resolve = res; });
+  return warm.promise;
+}
+
+function warmupVedic(){
+  if (warm.started) return warm;
+  warm.started = true;
+  (async () => {
+    for (const f of VEDIC_FILES){
+      const res = await fetch(f.path, { cache: 'force-cache' });
+      if (!res.ok) throw new Error(`${f.path} → HTTP ${res.status}`);
+      if (res.body && res.body.getReader){
+        const reader = res.body.getReader();
+        for (;;){
+          const { done, value } = await reader.read();
+          if (done) break;
+          warm.loaded += value.byteLength;
+          updateProgUI();
+        }
+      } else {
+        const buf = await res.arrayBuffer();
+        warm.loaded += buf.byteLength;
+        updateProgUI();
+      }
+    }
+    warm.done = true;
+  })().catch(e => { warm.error = e; warm.done = true; })
+     .finally(() => { updateProgUI(); if (warm.resolve) warm.resolve(); });
+  return warm;
+}
+
+function warmProgressHtml(){
+  const tot = (warm.total / 1048576).toFixed(2);
+  return `<div class="card"><div class="load-box">
+    <div class="big"><span class="spin"></span>正在下载瑞士星历（${tot} MB）</div>
+    <div class="prog-block">
+      <div class="prog"><div class="prog-fill"></div></div>
+      <div class="prog-txt">0.00 / ${tot} MB　0%</div>
+    </div>
+    <div class="small">
+      印占要算真实天体位置，而这套口径依赖瑞士星历本体（不可用简化算法替代，
+      否则同一份生辰在两处会算出不同的盘）。这份文件只需要下一次，
+      之后浏览器会缓存它；你也可以先切回「中式八字」看盘，让它在后台自己下完。
+    </div>
+  </div></div>`;
 }
 
 /* 南印度方盘：星座位置固定，顺时针自白羊起 */
@@ -1762,19 +1862,34 @@ function renderComboPanel(){
   $("#panel-combo").innerHTML = renderCombo(state.bazi, state.vedic.chart, state.vedic.mod, state.input);
 }
 
-async function renderVedicPanel(){
-  const panel = $("#panel-vedic");
+async function renderVedicPanel(targetPanel){
+  const tv = $("#panel-vedic");
+  const target = targetPanel || tv;
+  if (!state.bazi) return;
   if (state.vedic && state.vedic.key === state.key){
-    panel.innerHTML = renderVedic(state.vedic.chart, state.input);
+    tv.innerHTML = renderVedic(state.vedic.chart, state.input);
+    renderComboPanel();
     return;
   }
-  panel.innerHTML = loadingHtml();
+  warmupVedic();
+  if (!warm.done){
+    target.innerHTML = warmProgressHtml();
+    updateProgUI();
+    await waitWarm();
+  }
+  if (state.vedic && state.vedic.key === state.key){
+    tv.innerHTML = renderVedic(state.vedic.chart, state.input);
+    renderComboPanel();
+    return;
+  }
+  if (!state.bazi) return;
+  target.innerHTML = loadingHtml();
   try {
     const r = await ensureVedic();
-    panel.innerHTML = renderVedic(r.chart, state.input);
+    tv.innerHTML = renderVedic(r.chart, state.input);
     renderComboPanel();
   } catch(e){
-    panel.innerHTML = errHtml(e);
+    target.innerHTML = errHtml(e);
   }
 }
 
@@ -1790,7 +1905,8 @@ async function switchTab(name){
     panel.innerHTML = `<div class="load-box"><div class="big">先起盘</div>请先填好生辰并点「起 盘」。</div>`;
     return;
   }
-  await renderVedicPanel();
+  if (name === "combo"){ await renderVedicPanel(panel); await waitWarm(); renderComboPanel(); return; }
+  await renderVedicPanel(panel);
 }
 
 function updateAiCur(){
@@ -1927,6 +2043,9 @@ syncThemeBtn();
 initCities();
 aiInit();
 doSubmit();
+/* 首屏（八字盘）渲染完之后，再把 2.7MB 星历挪到后台下载，避免和首屏抢带宽。
+   用户读八字盘的这段时间下载已经在跑，等切到印占多半已就绪。 */
+setTimeout(() => { try { warmupVedic(); } catch(e){} }, 900);
 </script>
 </body>
 </html>
