@@ -268,20 +268,22 @@ button.sample:hover{color:var(--gold);border-color:var(--gold)}
 .badge.bad{color:var(--red);border-color:var(--red)}
 .badge.rx{color:var(--wu-shui);border-color:var(--wu-shui)}
 
-/* ---------- 时间轴条 ---------- */
+/* ---------- 时间轴条 ----------
+   注意类名：这套前缀必须避开页头的 class="bar"、表单性别切换的 class="seg"，
+   否则后者会被这里的 height/overflow/flex 规则误伤（曾经真的把页头压成了 46px）。 */
 .tl{margin:0 0 20px}
 .tl .cap{font-size:12px;color:var(--muted);letter-spacing:.1em;margin-bottom:7px}
 .tl .cap b{color:var(--gold)}
-.bar{display:flex;height:46px;border-radius:9px;overflow:hidden;border:1px solid var(--line)}
-.bar .seg{
+.tl-bar{display:flex;height:46px;border-radius:9px;overflow:hidden;border:1px solid var(--line)}
+.tlseg{
   flex:0 0 auto;border-right:1px solid var(--line);display:flex;flex-direction:column;
   align-items:center;justify-content:center;font-size:10.5px;color:var(--muted);
   overflow:hidden;background:var(--panel2);
 }
-.bar .seg span{font-size:12.5px;color:var(--text);font-weight:700;line-height:1.3}
-.bar .seg.now{background:var(--tag-bg)}
-.bar .seg.now span{color:var(--gold)}
-.bar .seg:last-child{border-right:none}
+.tlseg span{font-size:12.5px;color:var(--text);font-weight:700;line-height:1.3}
+.tlseg.now{background:var(--tag-bg)}
+.tlseg.now span{color:var(--gold)}
+.tlseg:last-child{border-right:none}
 
 /* ---------- AI 解读 ---------- */
 .warn{
@@ -347,8 +349,8 @@ footer a{color:var(--gold);text-decoration:none}
   .si-cell{padding:4px;border-radius:6px}
   .si-cell .pl{font-size:10px}
   .si-cell .sg{font-size:9px}
-  .bar{height:40px}
-  .bar .seg span{font-size:11px}
+  .tl-bar{height:40px}
+  .tlseg span{font-size:11px}
 }
 </style>
 </head>
@@ -1233,7 +1235,7 @@ function renderVedic(c, inp){
   const mdSegs = c.dasha.list.map(md => {
     const y0 = jdYear(md.start), y1 = jdYear(md.end);
     const isNow = md === curMd;
-    return `<div class="seg${isNow ? " now" : ""}" style="flex:${(y1 - y0).toFixed(3)} 0 0" title="${md.lord_cn} ${V.jdToYmd(md.start)}~${V.jdToYmd(md.end)}">
+    return `<div class="tlseg${isNow ? " now" : ""}" style="flex:${(y1 - y0).toFixed(3)} 0 0" title="${md.lord_cn} ${V.jdToYmd(md.start)}~${V.jdToYmd(md.end)}">
       <span>${esc(md.lord_cn)}</span>${y0.toFixed(0)}</div>`;
   }).join("");
 
@@ -1241,7 +1243,7 @@ function renderVedic(c, inp){
   const adSegs = curMd.ads.map(ad => {
     const y0 = jdYear(ad.start), y1 = jdYear(ad.end);
     const isNow = ad === curAd;
-    return `<div class="seg${isNow ? " now" : ""}" style="flex:${Math.max(y1 - y0, .4).toFixed(3)} 0 0" title="${ad.lord_cn} ${V.jdToYmd(ad.start)}~${V.jdToYmd(ad.end)}">
+    return `<div class="tlseg${isNow ? " now" : ""}" style="flex:${Math.max(y1 - y0, .4).toFixed(3)} 0 0" title="${ad.lord_cn} ${V.jdToYmd(ad.start)}~${V.jdToYmd(ad.end)}">
       <span>${esc(ad.lord_cn)}</span></div>`;
   }).join("");
 
@@ -1308,11 +1310,11 @@ function renderVedic(c, inp){
       <div class="sec-head"><h3>Vimshottari 大运</h3><div class="line"></div><span class="tip-s">由月亮所在宿起运，共 120 年一循环</span></div>
       <div class="tl">
         <div class="cap">主运 Mahadasha — 当前为 <b>${esc(curMd.lord_cn)}</b>（${V.jdToYmd(curMd.start)} ~ ${V.jdToYmd(curMd.end)}）</div>
-        <div class="bar">${mdSegs}</div>
+        <div class="tl-bar">${mdSegs}</div>
       </div>
       <div class="tl">
         <div class="cap">当前主运的次运 Antardasha${curAd ? ` — 当前为 <b>${esc(curAd.lord_cn)}</b>` : ""}</div>
-        <div class="bar">${adSegs}</div>
+        <div class="tl-bar">${adSegs}</div>
       </div>
       <div class="dayun-scroll">${mdCards}</div>
     </div>
@@ -1367,7 +1369,7 @@ function renderCombo(b, v, V, inp){
   const dySegs = b.dayun.map(d => {
     const w = d.end_age - d.start_age;
     const isNow = d.ganzhi === b.currentDayun;
-    return `<div class="seg${isNow ? " now" : ""}" style="flex:${w} 0 0" title="${d.ganzhi} ${d.start_year}~${d.end_year}">
+    return `<div class="tlseg${isNow ? " now" : ""}" style="flex:${w} 0 0" title="${d.ganzhi} ${d.start_year}~${d.end_year}">
       <span>${esc(d.ganzhi)}</span>${d.start_year}</div>`;
   }).join("");
 
@@ -1382,7 +1384,7 @@ function renderCombo(b, v, V, inp){
 
   const mdSegs = v.dasha.list.map(md => {
     const y0 = jdYear(md.start), y1 = jdYear(md.end);
-    return `<div class="seg${md === curMd ? " now" : ""}" style="flex:${(y1 - y0).toFixed(3)} 0 0" title="${md.lord_cn} ${V.jdToYmd(md.start)}~${V.jdToYmd(md.end)}">
+    return `<div class="tlseg${md === curMd ? " now" : ""}" style="flex:${(y1 - y0).toFixed(3)} 0 0" title="${md.lord_cn} ${V.jdToYmd(md.start)}~${V.jdToYmd(md.end)}">
       <span>${esc(md.lord_cn)}</span>${y0.toFixed(0)}</div>`;
   }).join("");
 
@@ -1423,11 +1425,11 @@ function renderCombo(b, v, V, inp){
 
       <div class="tl" style="margin-top:22px">
         <div class="cap">中式大运（每十年一换）— 当前 <b>${esc(b.currentDayun || "—")}</b></div>
-        <div class="bar">${dySegs}</div>
+        <div class="tl-bar">${dySegs}</div>
       </div>
       <div class="tl">
         <div class="cap">印占主运 Mahadasha — 当前 <b>${esc(curMd.lord_cn)}</b>（${V.jdToYmd(curMd.start)} ~ ${V.jdToYmd(curMd.end)}）</div>
-        <div class="bar">${mdSegs}</div>
+        <div class="tl-bar">${mdSegs}</div>
       </div>
       <div class="note tight">
         两条时间条是<b>各自的节律</b>，切换点不会重合——这正是合参的意义：
