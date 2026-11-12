@@ -1,0 +1,33 @@
+{
+  "name": "xuanjige",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": "^22.13.0 || >=24.0.0"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test:bazi": "node --experimental-strip-types scripts/bazi.test.ts",
+    "test:bazi:regression": "node --experimental-strip-types scripts/bazi-regression.ts",
+    "test:timecn": "node --experimental-strip-types scripts/timecn.test.ts",
+    "test:vedic": "node --experimental-strip-types scripts/vedic.test.ts",
+    "print:bazi": "node --experimental-strip-types scripts/print-bazi.ts",
+    "print:vedic": "node --experimental-strip-types scripts/print-vedic.ts"
+  },
+  "dependencies": {
+    "@swisseph/browser": "^1.4.0",
+    "lunar-javascript": "^1.7.8",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8"
+  }
+}

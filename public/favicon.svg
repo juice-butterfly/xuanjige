@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#8C2F26"/>
+  <rect x="6.5" y="6.5" width="51" height="51" fill="none" stroke="#E6DDCB" stroke-opacity=".55" stroke-width="1.5"/>
+  <text x="32" y="45" text-anchor="middle" font-family="KaiTi, STKaiti, Songti SC, serif" font-size="36" fill="#E6DDCB">玄</text>
+</svg>
