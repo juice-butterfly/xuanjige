@@ -6,13 +6,16 @@ import {
   ensureCloudResources,
   CloudAgentsError,
 } from './cloud-agents.mjs';
-import { readSSE, encodeSSE } from './sse.mjs';
 
 // 来自 sites.get_context().runtime.cloudAgents.apiOrigin（已配置为 true）。
 // 停止部署若该值未配置；不得用管理端 origin 或文档示例兜底。
 const CLOUD_ORIGIN = 'https://api.qoder.com.cn';
 // 稳定应用域，固定于服务端配置；禁止取自 Host 头或请求参数。
 const APP_SCOPE = 'xuanjige-master-v1';
+
+// 令牌只从平台注入的 QODER_PAT 读取；客户端与浏览器都接触不到。
+const cloud = createCloudAgentsClient({ origin: CLOUD_ORIGIN });
+const coordinator = createMemoryCoordinator();
 
 const MODES = new Set(['merge', 'family', 'study', 'career', 'marriage', 'health', 'social']);
 const DIRECTION_CN = {
@@ -129,10 +132,16 @@ function validChart(c) {
   if (!b || typeof b !== 'object' || !v || typeof v !== 'object') return null;
   if (!isStr(b.day_master, 2) || !isElement(b.day_master_element)) return null;
   if (!isStr(b.day_strength, 12)) return null;
-  if (!Array.isArray(b.favorable) || b.favorable.length > 2 || !b.favorable.every(isElement)) return null;
+  // 喜用按十神组命名（官杀 / 食伤 / 财 / 印 / 比劫 / 调候用神 / 扶抑平衡），不是五行。
+  if (!Array.isArray(b.favorable) || b.favorable.length > 3) return null;
+  if (!b.favorable.every(s => isStr(s, 12))) return null;
   if (!Array.isArray(b.pillars) || b.pillars.length !== 4) return null;
   for (const p of b.pillars) {
-    if (!p || typeof p !== 'object' || !isStr(p.name, 2) || !isStr(p.ganzhi, 2) || !isStr(p.shi_shen_gan, 8)) return null;
+    if (!p || typeof p !== 'object' || !isStr(p.name, 2)) return null;
+    // 时柱可因时辰不详而为空串。
+    if (typeof p.ganzhi !== 'string' || p.ganzhi.length > 2) return null;
+    // 日柱天干即日主，其十神为空串。
+    if (typeof p.shi_shen_gan !== 'string' || p.shi_shen_gan.length > 8) return null;
   }
   if (!b.wuxing_count || typeof b.wuxing_count !== 'object') return null;
   for (const e of ELEMENTS) {
@@ -140,7 +149,8 @@ function validChart(c) {
     if (!Number.isInteger(n) || n < 0 || n > 8) return null;
   }
   if (!Array.isArray(b.wuxing_missing) || b.wuxing_missing.length > 5 || !b.wuxing_missing.every(isElement)) return null;
-  if (!isStr(b.current_dayun, 2)) return null;
+  // 时辰不详时无当前大运，允许空串。
+  if (typeof b.current_dayun !== 'string' || b.current_dayun.length > 2) return null;
   if (b.shen_sha !== undefined) {
     if (!Array.isArray(b.shen_sha) || b.shen_sha.length > 6 || !b.shen_sha.every(s => isStr(s, 24))) return null;
   }
@@ -148,7 +158,7 @@ function validChart(c) {
   if (!isStr(v.moon_nakshatra, 48)) return null;
   if (!Array.isArray(v.planets) || v.planets.length !== 9) return null;
   for (const p of v.planets) {
-    if (!p || typeof p !== 'object' || !isStr(p.planet, 4) || !isStr(p.sign_cn, 4)) return null;
+    if (!p || typeof p !== 'object' || !isStr(p.planet, 12) || !isStr(p.sign_cn, 4)) return null;
     if (!Number.isInteger(p.house) || p.house < 1 || p.house > 12) return null;
     if (typeof p.retro !== 'boolean') return null;
   }
@@ -163,12 +173,13 @@ function chartBlock(chart) {
   const lines = [];
   lines.push(`性别：${chart.gender}`);
   lines.push('——中式八字——');
-  lines.push(`四柱：${b.pillars.map(p => `${p.name} ${p.ganzhi}（${p.shi_shen_gan}）`).join(' · ')}`);
+  const pillars = b.pillars.filter(p => p.ganzhi).map(p => `${p.name} ${p.ganzhi}（${p.shi_shen_gan}）`);
+  lines.push(`四柱：${pillars.join(' · ')}${b.pillars.length > pillars.length ? '（时柱不详）' : ''}`);
   lines.push(`日主：${b.day_master}${b.day_master_element}`);
   lines.push(`五行分布：${ELEMENTS.map(e => `${e}${b.wuxing_count[e] ?? 0}`).join(' ')}（缺 ${b.wuxing_missing.length ? b.wuxing_missing.join('、') : '无'}）`);
-  lines.push(`身强弱：${b.day_strength} · 喜用 ${b.favorable.join('、') || '未定'}`);
+  lines.push(`身强弱：${b.day_strength} · 喜用十神 ${b.favorable.join('、') || '未定'}`);
   if (Array.isArray(b.shen_sha) && b.shen_sha.length) lines.push(`神煞：${b.shen_sha.join(' · ')}`);
-  lines.push(`当前大运：${b.current_dayun}`);
+  lines.push(`当前大运：${b.current_dayun || '时辰不详，未排大运'}`);
   lines.push('——印占——');
   lines.push(`上升（Lagna）：${v.lagna}`);
   lines.push(`月亮宿：${v.moon_nakshatra}`);
@@ -225,176 +236,115 @@ function textOfContent(content) {
   return '';
 }
 
-function unwrap(obj) {
-  return obj?.event && typeof obj.event === 'object' ? obj.event : obj;
-}
-
-function deltaText(obj) {
-  const d = obj?.delta ?? unwrap(obj)?.delta;
-  if (d && (d.type === 'content_delta' || d.type === undefined)) return textOfContent(d.content);
-  return '';
-}
-
-function messageText(obj) {
-  const e = unwrap(obj);
-  if (e?.type === 'agent.message') {
-    const text = textOfContent(e.content);
-    return typeof text === 'string' ? text : null;
+// 平台对单次响应有约 60 秒上限，而首字可能迟至 50 秒才出现，
+// 故一次长连接必然被截断：改由浏览器先起会话、再分次短轮询。
+function projectEvents(events) {
+  let text = '';
+  let state = 'running';
+  for (const evt of events) {
+    const type = typeof evt?.type === 'string' ? evt.type : '';
+    if (type === 'agent.message') {
+      const piece = textOfContent(evt.content);
+      if (piece) text = piece;
+    }
+    const lowered = type.toLowerCase();
+    if (/fail|error/.test(lowered)) state = 'failed';
+    else if (/interrupt|abort|cancel/.test(lowered)) state = 'interrupted';
+    else if (state === 'running' && /idle|completed|done|finished|end/.test(lowered)) state = 'completed';
   }
-  return null;
+  return { text, state };
 }
 
-function terminalStatus(obj) {
-  const e = unwrap(obj);
-  const t = typeof e?.type === 'string' ? e.type.toLowerCase() : '';
-  if (!t) return null;
-  if (t.includes('interrupt') || t.includes('abort')) return 'interrupted';
-  if (t.includes('fail') || t === 'error' || t === 'session.error') return 'failed';
-  const st = typeof e?.state === 'string' ? e.state : typeof e?.status === 'string' ? e.status : '';
-  if (/fail|error/.test(st)) return 'failed';
-  if (/interrupt|abort/.test(st)) return 'interrupted';
-  return null;
+function failResponse(error) {
+  if (error instanceof CloudAgentsError) {
+    const status = [400, 401, 403, 404, 409, 413, 429].includes(error.status) ? error.status : 503;
+    return Response.json({ error: { code: error.code } }, { status });
+  }
+  return Response.json({ error: { code: 'service_unavailable' } }, { status: 503 });
 }
 
-function safeErrorCode(error) {
-  if (error instanceof CloudAgentsError) return error.code;
-  return 'upstream';
+async function startSession(mode, chart) {
+  const prompt = buildPrompt(mode, chart);
+  const model = await pickModel(cloud);
+  const binding = await ensureCloudResources({
+    client: cloud,
+    coordinator,
+    applicationScope: APP_SCOPE,
+    agent: {
+      name: '玄机先生',
+      model,
+      system: SYSTEM_PROMPT,
+      metadata: { app: 'xuanjige', purpose: 'interpretation' },
+    },
+    environment: { name: '玄机先生环境', config: { type: 'cloud' } },
+  });
+  const session = await cloud.request('/api/v1/cloud/sessions', {
+    method: 'POST',
+    body: { ...binding, title: '玄机阁解读', metadata: { app: 'xuanjige', purpose: 'interpretation' } },
+  });
+  if (typeof session?.id !== 'string' || !/^sess_[A-Za-z0-9_-]+$/.test(session.id)) fail('ai_response_invalid', 503);
+  await cloud.request(`/api/v1/cloud/sessions/${session.id}/events`, {
+    method: 'POST',
+    body: { events: [{ type: 'user.message', content: [{ type: 'text', text: prompt }] }] },
+  });
+  return session.id;
 }
 
 async function interpret(request, ctx, requireUserFn) {
-  const user = requireUserFn(ctx);
-  if (!user?.id) fail('login_required', 401);
-  const requestId = request.headers.get('x-request-id');
-  if (!UUID_RE.test(requestId ?? '')) fail('invalid_input', 400);
-  const body = await readJson(request, 8192);
-  if (!MODES.has(body?.mode)) fail('invalid_input', 400);
-  const chart = validChart(body.chart);
-  if (!chart) fail('invalid_input', 400);
-
-  const prompt = buildPrompt(body.mode, chart);
-  const lifetime = new AbortController();
-  if (request.signal.aborted) lifetime.abort();
-  else request.signal.addEventListener('abort', () => lifetime.abort(), { once: true });
-  const lifetimeTimer = setTimeout(() => lifetime.abort(), 110000);
-
   try {
-    const model = await pickModel(cloud);
-    const binding = await ensureCloudResources({
-      client: cloud,
-      coordinator,
-      applicationScope: APP_SCOPE,
-      agent: {
-        name: '玄机先生',
-        model,
-        system: SYSTEM_PROMPT,
-        metadata: { app: 'xuanjige', purpose: 'interpretation' },
-      },
-      environment: { name: '玄机先生环境', config: { type: 'cloud' } },
-    });
-    const session = await cloud.request('/api/v1/cloud/sessions', {
-      method: 'POST',
-      body: { ...binding, title: '玄机阁解读', metadata: { app: 'xuanjige', purpose: 'interpretation' } },
-    });
-    if (typeof session?.id !== 'string' || !/^sess_[A-Za-z0-9_-]+$/.test(session.id)) fail('ai_response_invalid', 503);
-
-    // 先接上游流，再发消息，避免漏掉最早的事件块。
-    const upstream = await cloud.openStream(session.id, { signal: lifetime.signal });
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        let closed = false;
-        const push = frame => {
-          if (closed) return;
-          try {
-            controller.enqueue(encodeSSE('frame', frame));
-          } catch {
-            closed = true;
-          }
-        };
-        const ping = setInterval(() => {
-          if (closed) return;
-          try {
-            controller.enqueue(encoder.encode(': ping\n\n'));
-          } catch {
-            closed = true;
-          }
-        }, 15000);
-        let sent = '';
-        try {
-          push({ t: 'ready' });
-          await cloud.request(`/api/v1/cloud/sessions/${session.id}/events`, {
-            method: 'POST',
-            body: { events: [{ type: 'user.message', content: [{ type: 'text', text: prompt }] }] },
-          });
-          for await (const frame of readSSE(upstream.body, { signal: lifetime.signal })) {
-            let evt;
-            try {
-              evt = JSON.parse(frame.data);
-            } catch {
-              continue;
-            }
-            const piece = deltaText(evt);
-            if (piece) {
-              sent += piece;
-              push({ t: 'delta', text: piece });
-              continue;
-            }
-            const full = messageText(evt);
-            if (full !== null && full !== sent) {
-              push({ t: 'replace', text: full });
-              sent = full;
-              continue;
-            }
-            const term = terminalStatus(evt);
-            if (term) {
-              push({ t: 'error', code: term === 'interrupted' ? 'interrupted' : 'upstream' });
-              closed = true;
-            }
-          }
-          if (!closed && !lifetime.signal.aborted) push(sent ? { t: 'done' } : { t: 'error', code: 'no_reply' });
-        } catch (error) {
-          if (!closed && !lifetime.signal.aborted) push({ t: 'error', code: safeErrorCode(error) });
-        } finally {
-          clearInterval(ping);
-          closed = true;
-          try {
-            upstream.close();
-          } catch {}
-          try {
-            controller.close();
-          } catch {}
-        }
-      },
-      cancel() {
-        lifetime.abort();
-      },
-    });
-    return new Response(stream, {
-      headers: {
-        'content-type': 'text/event-stream',
-        'cache-control': 'no-store, no-transform',
-      },
-    });
-  } catch (error) {
-    clearTimeout(lifetimeTimer);
-    if (error instanceof CloudAgentsError) {
-      const status = [400, 401, 403, 404, 409, 413, 429].includes(error.status) ? error.status : 503;
-      return Response.json({ error: { code: error.code } }, { status });
+    // 站点公开访问（auth_integration_status: not_required），匿名访客也可问事；
+    // 有身份时照常通过，无身份不作为拒绝条件。V1 不存会话，故无需归属校验。
+    try {
+      requireUserFn(ctx);
+    } catch {
+      /* 匿名访客 */
     }
-    return Response.json({ error: { code: 'service_unavailable' } }, { status: 503 });
+    const requestId = request.headers.get('x-request-id');
+    if (!UUID_RE.test(requestId ?? '')) fail('invalid_input', 400);
+    const body = await readJson(request, 8192);
+    if (!MODES.has(body?.mode)) fail('invalid_input', 400);
+    const chart = validChart(body.chart);
+    if (!chart) fail('invalid_input', 400);
+    const session = await startSession(body.mode, chart);
+    return Response.json({ session }, { headers: { 'cache-control': 'no-store' } });
+  } catch (error) {
+    return failResponse(error);
+  }
+}
+
+async function readEvents(request) {
+  try {
+    const session = new URL(request.url).searchParams.get('session') ?? '';
+    if (!/^sess_[A-Za-z0-9_-]+$/.test(session)) fail('invalid_input', 400);
+    const result = await cloud.request(`/api/v1/cloud/sessions/${session}/events?order=asc&limit=100`);
+    const events = Array.isArray(result?.data) ? result.data : [];
+    const { text, state } = projectEvents(events);
+    const payload = { text, state };
+    if (request.headers.get('x-debug') === '1') {
+      payload.types = [...new Set(events.map(e => e?.type).filter(t => typeof t === 'string'))];
+    }
+    return Response.json(payload, { headers: { 'cache-control': 'no-store' } });
+  } catch (error) {
+    return failResponse(error);
   }
 }
 
 export function application({ requireUser }) {
   return async ctx => {
     const request = ctx.request;
-    // 网关保留后缀，但把 app 换成部署的物理 Function 名；Provider 可能已剥掉 /functions/v1。
-    const pathname = new URL(request.url).pathname;
-    const match = pathname.match(/^\/(?:functions\/v1\/)?(?:app|app-d[0-9a-f]{32})(\/.*)?$/);
-    if (!match) fail('not_found', 404);
-    const path = match[1] || '/';
-    if (path === '/api/health' && request.method === 'GET') return Response.json({ ok: true });
-    if (path === '/api/interpret' && request.method === 'POST') return interpret(request, ctx, requireUser);
-    fail('not_found', 404);
+    try {
+      // 网关保留后缀，但把 app 换成部署的物理 Function 名；Provider 可能已剥掉 /functions/v1。
+      const pathname = new URL(request.url).pathname;
+      const match = pathname.match(/^\/(?:functions\/v1\/)?(?:app|app-d[0-9a-f]{32})(\/.*)?$/);
+      if (!match) fail('not_found', 404);
+      const path = match[1] || '/';
+      if (path === '/api/health' && request.method === 'GET') return Response.json({ ok: true });
+      // 必须以 await 返回，否则内部拒绝会绕过外层 try/catch，变成平台 500。
+      if (path === '/api/interpret' && request.method === 'POST') return await interpret(request, ctx, requireUser);
+      if (path === '/api/events' && request.method === 'GET') return await readEvents(request);
+      fail('not_found', 404);
+    } catch (error) {
+      return failResponse(error);
+    }
   };
 }

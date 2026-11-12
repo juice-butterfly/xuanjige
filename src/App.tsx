@@ -41,7 +41,7 @@ const PROVINCES = Object.keys(CITIES)
 
 const DRAFT_KEY = 'xuanjige.draft.v1'
 const ENTRY_KEY = 'xuanjige.entry.v1'
-const THEME_KEY = 'xuanjige.theme.v1'
+const THEME_KEY = 'xuanjige.theme.v2'
 
 const EMPTY_DRAFT: Draft = {
   province: '',
@@ -67,9 +67,9 @@ function readStorage(key: string): unknown {
 
 function readTheme(): Theme {
   try {
-    return localStorage.getItem(THEME_KEY) === 'day' ? 'day' : 'night'
+    return localStorage.getItem(THEME_KEY) === 'night' ? 'night' : 'day'
   } catch {
-    return 'night'
+    return 'day'
   }
 }
 

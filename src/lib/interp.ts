@@ -89,7 +89,7 @@ export function buildChartPayload(
         GRAHA_CN[vedic.moon_nakshatra.lord] ?? vedic.moon_nakshatra.lord
       }`,
       planets: vedic.planets.map((p) => ({
-        planet: p.planet,
+        planet: GRAHA_CN[p.planet] ?? p.planet,
         sign_cn: p.sign_cn,
         house: p.house,
         retro: p.retro,
@@ -143,125 +143,157 @@ export function fallbackText(code: string): string {
   return FALLBACK[code] ?? FALLBACK.service_unavailable
 }
 
-type InterpFrame =
-  | { t: 'ready' }
-  | { t: 'delta'; text: string }
-  | { t: 'replace'; text: string }
-  | { t: 'done' }
-  | { t: 'error'; code: string }
+type FetchOutcome = Response | 'stopped' | 'timeout' | 'network'
+type EventPoll = { text?: string; state?: string }
 
-// 单发解读：POST /functions/v1/app/api/interpret，读应用侧 SSE 帧。
-// 首帧预算 45 秒、帧间预算 30 秒，超时一律中文兜底；外部 signal 触发即停止。
+const START_BUDGET = 30000
+const POLL_BUDGET = 12000
+const POLL_INTERVAL = 1500
+const RUN_BUDGET = 180000
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+async function call(
+  path: string,
+  init: RequestInit,
+  budget: number,
+  external: AbortSignal,
+): Promise<FetchOutcome> {
+  if (external.aborted) return 'stopped'
+  const local = new AbortController()
+  let timedOut = false
+  const stop = () => local.abort()
+  external.addEventListener('abort', stop, { once: true })
+  const timer = setTimeout(() => {
+    timedOut = true
+    local.abort()
+  }, budget)
+  try {
+    return await fetch(path, { ...init, signal: local.signal })
+  } catch {
+    if (timedOut) return 'timeout'
+    return external.aborted ? 'stopped' : 'network'
+  } finally {
+    clearTimeout(timer)
+    external.removeEventListener('abort', stop)
+  }
+}
+
+async function errorCodeOf(response: Response): Promise<string> {
+  try {
+    const data = (await response.json()) as { error?: { code?: string } }
+    return typeof data?.error?.code === 'string' ? data.error.code : 'service_unavailable'
+  } catch {
+    return 'service_unavailable'
+  }
+}
+
+// 两段式问答：POST 起会话并投递盘面，随后短轮询取回结果。
+// 平台对单次响应有约 60 秒上限，而首字可能迟至 50 秒才出现，长连接必被截断。
 export async function streamInterpret(
   payload: ChartPayload,
   mode: InterpMode,
   onEvent: (event: StreamEvent) => void,
   external: AbortSignal,
 ): Promise<void> {
-  const local = new AbortController()
-  const stop = () => local.abort('client-stop')
-  if (external.aborted) stop()
-  else external.addEventListener('abort', stop, { once: true })
-
-  let timer: ReturnType<typeof setTimeout> | null = setTimeout(() => local.abort('timeout'), 45000)
-  const arm = (ms: number) => {
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => local.abort('timeout'), ms)
-  }
-  const timedOut = () => local.signal.aborted && local.signal.reason === 'timeout'
-  let sawFrame = false
-  try {
-    const response = await fetch('/functions/v1/app/api/interpret', {
+  const start = await call(
+    '/functions/v1/app/api/interpret',
+    {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-request-id': crypto.randomUUID() },
       body: JSON.stringify({ mode, chart: payload }),
-      signal: local.signal,
-    })
-    if (timedOut()) {
-      onEvent({ kind: 'error', code: 'timeout' })
-      return
-    }
-    if (!response.ok || !response.body) {
-      let code = 'service_unavailable'
-      try {
-        const data = (await response.json()) as { error?: { code?: string } }
-        if (typeof data?.error?.code === 'string') code = data.error.code
-      } catch {
-        /* 非 JSON 错误体一律走兜底 */
-      }
-      onEvent({ kind: 'error', code })
-      return
-    }
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-    let open = false
-    let done = false
-    while (true) {
-      const { done: finished, value } = await reader.read()
-      if (timedOut()) {
-        onEvent({ kind: 'error', code: 'timeout' })
-        return
-      }
-      if (finished) break
-      if (sawFrame) arm(30000)
-      buffer += decoder.decode(value, { stream: true })
-      let index: number
-      while ((index = buffer.search(/\r?\n\r?\n/)) >= 0) {
-        const raw = buffer.slice(0, index)
-        buffer = buffer.slice(index + (buffer[index] === '\r' ? 4 : 2))
-        const dataLines = raw
-          .split(/\r?\n/)
-          .filter((line) => line.startsWith('data:'))
-          .map((line) => line.slice(5).trimStart())
-        if (!dataLines.length) continue
-        let frame: InterpFrame
-        try {
-          frame = JSON.parse(dataLines.join('\n')) as InterpFrame
-        } catch {
-          continue
-        }
-        if (!sawFrame) {
-          sawFrame = true
-          arm(30000)
-        }
-        if (frame.t === 'ready') {
-          open = true
-          onEvent({ kind: 'open' })
-        } else if (frame.t === 'delta') {
-          onEvent({ kind: 'delta', text: frame.text })
-        } else if (frame.t === 'replace') {
-          onEvent({ kind: 'replace', text: frame.text })
-        } else if (frame.t === 'done') {
-          done = true
-          onEvent({ kind: 'done' })
-        } else if (frame.t === 'error') {
-          local.abort('frame-error')
-          onEvent({ kind: 'error', code: frame.code })
-          return
-        }
-      }
-    }
-    if (timedOut()) {
-      onEvent({ kind: 'error', code: 'timeout' })
-      return
-    }
-    if (local.signal.aborted) {
+    },
+    START_BUDGET,
+    external,
+  )
+  if (start === 'stopped') {
+    onEvent({ kind: 'stopped' })
+    return
+  }
+  if (start === 'timeout') {
+    onEvent({ kind: 'error', code: 'timeout' })
+    return
+  }
+  if (start === 'network') {
+    onEvent({ kind: 'network' })
+    return
+  }
+  if (!start.ok) {
+    onEvent({ kind: 'error', code: await errorCodeOf(start) })
+    return
+  }
+
+  let session = ''
+  try {
+    const data = (await start.json()) as { session?: string }
+    if (typeof data?.session === 'string') session = data.session
+  } catch {
+    /* 非 JSON 一律按未起会话处理 */
+  }
+  if (!/^sess_[A-Za-z0-9_-]+$/.test(session)) {
+    onEvent({ kind: 'error', code: 'service_unavailable' })
+    return
+  }
+
+  onEvent({ kind: 'open' })
+  let text = ''
+  let misses = 0
+  const until = Date.now() + RUN_BUDGET
+  while (Date.now() < until) {
+    await wait(POLL_INTERVAL)
+    if (external.aborted) {
       onEvent({ kind: 'stopped' })
       return
     }
-    // done 帧已在循环内上报；EOF 前没收到 done 帧视为未完成，不重复上报。
-    if (!open) onEvent({ kind: 'error', code: 'service_unavailable' })
-    else if (!done) onEvent({ kind: 'error', code: 'no_reply' })
-  } catch {
-    if (local.signal.aborted) {
-      if (timedOut()) onEvent({ kind: 'error', code: 'timeout' })
-      else onEvent({ kind: 'stopped' })
+    const poll = await call(
+      `/functions/v1/app/api/events?session=${encodeURIComponent(session)}`,
+      { headers: { accept: 'application/json' } },
+      POLL_BUDGET,
+      external,
+    )
+    if (poll === 'stopped') {
+      onEvent({ kind: 'stopped' })
       return
     }
-    onEvent({ kind: 'network' })
-  } finally {
-    if (timer) clearTimeout(timer)
-    external.removeEventListener('abort', stop)
+    if (typeof poll === 'string') {
+      if (++misses < 3) continue
+      if (poll === 'network') onEvent({ kind: 'network' })
+      else onEvent({ kind: 'error', code: 'timeout' })
+      return
+    }
+    if (!poll.ok) {
+      if (++misses < 3) continue
+      onEvent({ kind: 'error', code: await errorCodeOf(poll) })
+      return
+    }
+    let data: EventPoll = {}
+    try {
+      data = (await poll.json()) as EventPoll
+    } catch {
+      if (++misses < 3) continue
+      onEvent({ kind: 'network' })
+      return
+    }
+    misses = 0
+    if (typeof data.text === 'string' && data.text && data.text !== text) {
+      text = data.text
+      onEvent({ kind: 'replace', text })
+    }
+    if (data.state === 'completed') {
+      if (text) onEvent({ kind: 'done' })
+      else onEvent({ kind: 'error', code: 'no_reply' })
+      return
+    }
+    if (data.state === 'failed') {
+      onEvent({ kind: 'error', code: 'upstream' })
+      return
+    }
+    if (data.state === 'interrupted') {
+      onEvent({ kind: 'error', code: 'interrupted' })
+      return
+    }
   }
+  onEvent({ kind: 'error', code: text ? 'timeout' : 'no_reply' })
 }
