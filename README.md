@@ -55,3 +55,9 @@ public/         favicon.svg / swisseph.wasm
 ## 部署
 
 前端为静态产物（`dist/`），解读接口由同源 Function 提供。Function 通过平台注入的环境变量 `QODER_PAT` 调用 Qoder Cloud Agents，仓库内不含任何密钥或令牌。
+
+## 许可
+
+本项目以 [GNU AGPL-3.0](LICENSE) 发布。
+
+选择 AGPL 是因为印占计算依赖 `@swisseph/browser`，其中打包了 Swiss Ephemeris 的 wasm，该组件本身即 AGPL-3.0。按其网络条款，任何人修改后作为网站对外提供服务，也需向使用者提供对应源码。若需闭源商用，应另行取得 Astrodienst 的 Swiss Ephemeris 商业授权。
