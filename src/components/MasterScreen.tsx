@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { calcBazi } from '../engine/bazi'
 import type { VedicResult } from '../engine/vedic'
 import { Chapter } from './Chapter'
 import {
   DIRECTIONS,
+  askFollowUp,
   buildChartPayload,
   fallbackText,
   openingLine,
   streamInterpret,
   type InterpMode,
+  type StreamEvent,
 } from '../lib/interp'
 
 export type MasterEntry = {
@@ -28,9 +30,9 @@ type VedicState =
 
 type RunState =
   | { phase: 'idle' }
-  | { phase: 'busy'; mode: InterpMode; text: string; note?: string }
-  | { phase: 'done'; mode: InterpMode; text: string }
-  | { phase: 'stopped'; mode: InterpMode; text: string; note?: string }
+  | { phase: 'busy'; mode: InterpMode; text: string; asked?: string; note?: string }
+  | { phase: 'done'; mode: InterpMode; text: string; asked?: string }
+  | { phase: 'stopped'; mode: InterpMode; text: string; asked?: string; note?: string }
 
 const STOP_NOTE = '已止。半截的话，作半截听。'
 
@@ -46,8 +48,11 @@ export function MasterScreen({
   const [vedic, setVedic] = useState<VedicState>({ status: 'loading' })
   const [vedicNonce, setVedicNonce] = useState(0)
   const [run, setRun] = useState<RunState>({ phase: 'idle' })
+  const [askText, setAskText] = useState('')
   const abortRef = useRef<AbortController | null>(null)
   const runSeq = useRef(0)
+  const sessionRef = useRef('')
+  const repliesRef = useRef(0)
   const outputRef = useRef<HTMLDivElement | null>(null)
 
   const bazi = useMemo(() => {
@@ -102,58 +107,98 @@ export function MasterScreen({
     return () => abortRef.current?.abort()
   }, [])
 
-  function startRun(mode: InterpMode) {
+  // 换了生辰，旧盘上的会话就作废，追问不能沿用。
+  useEffect(() => {
+    abortRef.current?.abort()
+    runSeq.current++
+    sessionRef.current = ''
+    repliesRef.current = 0
+    setRun({ phase: 'idle' })
+    setAskText('')
+  }, [entry])
+
+  function startRun(mode: InterpMode, question?: string) {
     if (!entry || !bazi || vedic.status !== 'ready') return
     abortRef.current?.abort()
     const token = ++runSeq.current
     const ctrl = new AbortController()
     abortRef.current = ctrl
     const payload = buildChartPayload(bazi, vedic.data, entry.gender)
-    setRun({ phase: 'busy', mode, text: '' })
-    void streamInterpret(
-      payload,
-      mode,
-      (event) => {
-        if (token !== runSeq.current) return
-        setRun((prev) => {
-          if (event.kind === 'delta') {
-            const base = prev.phase === 'busy' ? prev.text : ''
-            return { phase: 'busy', mode, text: base + event.text }
-          }
-          if (event.kind === 'replace') {
-            return { phase: 'busy', mode, text: event.text }
-          }
-          if (event.kind === 'done') {
-            // 只从 busy 态转移，重复的终态事件不改写已定文本。
-            return prev.phase === 'busy'
-              ? { phase: 'done', mode, text: prev.text }
-              : prev
-          }
-          if (event.kind === 'error') {
-            return prev.phase === 'busy'
-              ? { phase: 'stopped', mode, text: prev.text, note: fallbackText(event.code) }
-              : prev
-          }
-          if (event.kind === 'stopped') {
-            return prev.phase === 'busy'
-              ? {
-                  phase: 'stopped',
-                  mode,
-                  text: prev.text,
-                  note: prev.text ? STOP_NOTE : '先生还没开口就停了。',
-                }
-              : prev
-          }
-          if (event.kind === 'network') {
-            return prev.phase === 'busy'
-              ? { phase: 'stopped', mode, text: prev.text, note: fallbackText('network') }
-              : prev
-          }
-          return prev
-        })
-      },
-      ctrl.signal,
-    )
+    const session = sessionRef.current
+    setRun({ phase: 'busy', mode, text: '', asked: question })
+    const handle = (event: StreamEvent) => {
+      if (token !== runSeq.current) return
+      if (event.kind === 'meta') {
+        sessionRef.current = event.session
+        return
+      }
+      if (event.kind === 'done' && typeof event.replies === 'number') {
+        repliesRef.current = event.replies
+      }
+      setRun((prev) => {
+        const asked = prev.phase === 'idle' ? undefined : prev.asked
+        if (event.kind === 'delta') {
+          const base = prev.phase === 'busy' ? prev.text : ''
+          return { phase: 'busy', mode, text: base + event.text, asked }
+        }
+        if (event.kind === 'replace') {
+          return { phase: 'busy', mode, text: event.text, asked }
+        }
+        if (event.kind === 'done') {
+          // 只从 busy 态转移，重复的终态事件不改写已定文本。
+          return prev.phase === 'busy'
+            ? { phase: 'done', mode, text: prev.text, asked: prev.asked }
+            : prev
+        }
+        if (event.kind === 'error') {
+          return prev.phase === 'busy'
+            ? {
+                phase: 'stopped',
+                mode,
+                text: prev.text,
+                asked: prev.asked,
+                note: fallbackText(event.code),
+              }
+            : prev
+        }
+        if (event.kind === 'stopped') {
+          return prev.phase === 'busy'
+            ? {
+                phase: 'stopped',
+                mode,
+                text: prev.text,
+                asked: prev.asked,
+                note: prev.text ? STOP_NOTE : '先生还没开口就停了。',
+              }
+            : prev
+        }
+        if (event.kind === 'network') {
+          return prev.phase === 'busy'
+            ? {
+                phase: 'stopped',
+                mode,
+                text: prev.text,
+                asked: prev.asked,
+                note: fallbackText('network'),
+              }
+            : prev
+        }
+        return prev
+      })
+    }
+    if (question && session) {
+      void askFollowUp(session, question, repliesRef.current, handle, ctrl.signal)
+      return
+    }
+    void streamInterpret(payload, mode, handle, ctrl.signal, question)
+  }
+
+  function submitAsk(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const question = askText.trim()
+    if (!question || vedic.status !== 'ready') return
+    setAskText('')
+    startRun('ask', question)
   }
 
   function stopRun() {
@@ -245,6 +290,7 @@ export function MasterScreen({
         )}
 
         <div className="master-output" ref={outputRef} aria-live="polite">
+          {run.phase !== 'idle' && run.asked && <p className="master-asked">问：{run.asked}</p>}
           {run.phase === 'idle' && <p className="master-quiet">点一个方向，或请先生合参。</p>}
           {run.phase === 'busy' && (
             <>
@@ -263,12 +309,41 @@ export function MasterScreen({
                   {run.note}
                 </p>
               )}
-              <button className="link master-stop" type="button" onClick={() => startRun(run.mode)}>
+              <button
+                className="link master-stop"
+                type="button"
+                onClick={() => startRun(run.mode, run.asked)}
+              >
                 再问一次
               </button>
             </>
           )}
         </div>
+
+        <form className="master-ask" onSubmit={submitAsk}>
+          <input
+            className="master-ask-input"
+            value={askText}
+            onChange={(e) => setAskText(e.target.value)}
+            placeholder={
+              !chartsReady
+                ? '印占盘未成，先生暂不开卷。'
+                : busy
+                  ? '先生正在说，稍候再问。'
+                  : '追问一句，或随意问点别的。'
+            }
+            maxLength={500}
+            disabled={!chartsReady || busy}
+            aria-label="追问先生"
+          />
+          <button
+            className="master-btn"
+            type="submit"
+            disabled={!chartsReady || busy || !askText.trim()}
+          >
+            问
+          </button>
+        </form>
 
         {showTail && (
           <p className="master-tail">本解读为传统文化娱乐内容，不构成任何决策依据。</p>

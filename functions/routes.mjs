@@ -17,7 +17,9 @@ const APP_SCOPE = 'xuanjige-master-v1';
 const cloud = createCloudAgentsClient({ origin: CLOUD_ORIGIN });
 const coordinator = createMemoryCoordinator();
 
-const MODES = new Set(['merge', 'family', 'study', 'career', 'marriage', 'health', 'social']);
+const MODES = new Set(['merge', 'family', 'study', 'career', 'marriage', 'health', 'social', 'ask']);
+// 固定模型：账号模型列表里的 DeepSeek-Flash。列表变动时退回第一个启用项。
+const PINNED_MODEL = 'dfmodel';
 const DIRECTION_CN = {
   merge: '合参',
   family: '家运亲情',
@@ -189,7 +191,17 @@ function chartBlock(chart) {
   return lines.join('\n');
 }
 
-function buildPrompt(mode, chart) {
+function buildPrompt(mode, chart, question) {
+  if (mode === 'ask') {
+    return [
+      `【盘面】\n${chartBlock(chart)}`,
+      `【提问】${question}`,
+      '',
+      '【作答】只依据上面盘面回答，盘面没有的不要编；术语仍只随体系走，不杂交。',
+      '不判生死，不承诺财运，不做健康断言，不给具体金额。分点作答，至多四条，每条另起一行以「依据：」写明出处。',
+      '输出纯文本，不用 Markdown 符号。',
+    ].join('\n');
+  }
   const task = [];
   if (mode === 'merge') {
     task.push(
@@ -223,9 +235,12 @@ async function pickModel(cloud) {
   const result = await cloud.request('/api/v1/cloud/models');
   const list = Array.isArray(result?.data) ? result.data : [];
   // 列表字段为 is_enabled；首项通常是 auto（平台自动路由）。
-  const chosen = list.find(m => m && typeof m.id === 'string'
+  const usable = list.filter(m => m && typeof m.id === 'string'
     && m.is_enabled !== false && m.enabled !== false
     && m.status !== 'disabled' && m.status !== 'unavailable');
+  const chosen = usable.find(m => m.id === PINNED_MODEL)
+    ?? usable.find(m => m.id !== 'auto')
+    ?? usable[0];
   if (!chosen) fail('ai_model_unavailable', 503);
   cachedModel = chosen.id;
   return cachedModel;
@@ -242,19 +257,44 @@ function textOfContent(content) {
 // 故一次长连接必然被截断：改由浏览器先起会话、再分次短轮询。
 function projectEvents(events) {
   let text = '';
+  let replies = 0;
   let state = 'running';
+  // 只按最后一条用户消息之后的状态判终态，避免上一轮的 idle 冒充本轮。
+  let turnStart = 0;
+  events.forEach((evt, index) => {
+    if (evt?.type === 'user.message') turnStart = index + 1;
+  });
   for (const evt of events) {
     const type = typeof evt?.type === 'string' ? evt.type : '';
     if (type === 'agent.message') {
       const piece = textOfContent(evt.content);
-      if (piece) text = piece;
+      if (piece) {
+        text = piece;
+        replies++;
+      }
     }
-    const lowered = type.toLowerCase();
+  }
+  for (let index = turnStart; index < events.length; index++) {
+    const lowered = String(events[index]?.type ?? '').toLowerCase();
     if (/fail|error/.test(lowered)) state = 'failed';
     else if (/interrupt|abort|cancel/.test(lowered)) state = 'interrupted';
     else if (state === 'running' && /idle|completed|done|finished|end/.test(lowered)) state = 'completed';
   }
-  return { text, state };
+  return { text, state, replies };
+}
+
+async function listEvents(session) {
+  const events = [];
+  let page;
+  for (let index = 0; index < 10; index++) {
+    const query = `order=asc&limit=100${page ? `&page=${encodeURIComponent(page)}` : ''}`;
+    const result = await cloud.request(`/api/v1/cloud/sessions/${session}/events?${query}`);
+    events.push(...(Array.isArray(result?.data) ? result.data : []));
+    if (!result?.has_more) break;
+    if (typeof result.next_page !== 'string' || !result.next_page) break;
+    page = result.next_page;
+  }
+  return events;
 }
 
 function failResponse(error) {
@@ -265,8 +305,8 @@ function failResponse(error) {
   return Response.json({ error: { code: 'service_unavailable' } }, { status: 503 });
 }
 
-async function startSession(mode, chart) {
-  const prompt = buildPrompt(mode, chart);
+async function startSession(mode, chart, question, visitor) {
+  const prompt = buildPrompt(mode, chart, question);
   const model = await pickModel(cloud);
   const binding = await ensureCloudResources({
     client: cloud,
@@ -282,7 +322,11 @@ async function startSession(mode, chart) {
   });
   const session = await cloud.request('/api/v1/cloud/sessions', {
     method: 'POST',
-    body: { ...binding, title: '玄机阁解读', metadata: { app: 'xuanjige', purpose: 'interpretation' } },
+    body: {
+      ...binding,
+      title: '玄机阁解读',
+      metadata: { app: 'xuanjige', purpose: 'interpretation', ...(visitor ? { visitor } : {}) },
+    },
   });
   if (typeof session?.id !== 'string' || !/^sess_[A-Za-z0-9_-]+$/.test(session.id)) fail('ai_response_invalid', 503);
   await cloud.request(`/api/v1/cloud/sessions/${session.id}/events`, {
@@ -307,7 +351,12 @@ async function interpret(request, ctx, requireUserFn) {
     if (!MODES.has(body?.mode)) fail('invalid_input', 400);
     const chart = validChart(body.chart);
     if (!chart) fail('invalid_input', 400);
-    const started = await startSession(body.mode, chart);
+    const question = typeof body?.question === 'string' ? body.question.trim() : '';
+    if (body.mode === 'ask' ? !(question.length >= 1 && question.length <= 500) : question.length > 500) {
+      fail('invalid_input', 400);
+    }
+    const visitor = typeof body?.visitor === 'string' && UUID_RE.test(body.visitor) ? body.visitor : '';
+    const started = await startSession(body.mode, chart, question, visitor);
     return Response.json(started, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     return failResponse(error);
@@ -318,14 +367,38 @@ async function readEvents(request) {
   try {
     const session = new URL(request.url).searchParams.get('session') ?? '';
     if (!/^sess_[A-Za-z0-9_-]+$/.test(session)) fail('invalid_input', 400);
-    const result = await cloud.request(`/api/v1/cloud/sessions/${session}/events?order=asc&limit=100`);
-    const events = Array.isArray(result?.data) ? result.data : [];
-    const { text, state } = projectEvents(events);
-    const payload = { text, state };
+    const events = await listEvents(session);
+    const { text, state, replies } = projectEvents(events);
+    const payload = { text, state, replies };
     if (request.headers.get('x-debug') === '1') {
       payload.types = [...new Set(events.map(e => e?.type).filter(t => typeof t === 'string'))];
     }
     return Response.json(payload, { headers: { 'cache-control': 'no-store' } });
+  } catch (error) {
+    return failResponse(error);
+  }
+}
+
+// 追问：把新问题投进原会话，模型沿用前文与同一张盘。
+async function ask(request) {
+  try {
+    const requestId = request.headers.get('x-request-id');
+    if (!UUID_RE.test(requestId ?? '')) fail('invalid_input', 400);
+    const body = await readJson(request, 4096);
+    const session = typeof body?.session === 'string' ? body.session : '';
+    if (!/^sess_[A-Za-z0-9_-]+$/.test(session)) fail('invalid_input', 400);
+    const visitor = typeof body?.visitor === 'string' && UUID_RE.test(body.visitor) ? body.visitor : '';
+    if (!visitor) fail('invalid_input', 400);
+    const question = typeof body?.question === 'string' ? body.question.trim() : '';
+    if (!question || question.length > 500) fail('invalid_input', 400);
+    // 会话登记过访客标识的，必须是同一访客；不暴露会话是否存在。
+    const info = await cloud.request(`/api/v1/cloud/sessions/${session}`);
+    if (info?.metadata?.visitor !== visitor) fail('not_found', 404);
+    await cloud.request(`/api/v1/cloud/sessions/${session}/events`, {
+      method: 'POST',
+      body: { events: [{ type: 'user.message', content: [{ type: 'text', text: `【追问】${question}` }] }] },
+    });
+    return Response.json({ ok: true }, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     return failResponse(error);
   }
@@ -343,6 +416,7 @@ export function application({ requireUser }) {
       if (path === '/api/health' && request.method === 'GET') return Response.json({ ok: true });
       // 必须以 await 返回，否则内部拒绝会绕过外层 try/catch，变成平台 500。
       if (path === '/api/interpret' && request.method === 'POST') return await interpret(request, ctx, requireUser);
+      if (path === '/api/ask' && request.method === 'POST') return await ask(request);
       if (path === '/api/events' && request.method === 'GET') return await readEvents(request);
       fail('not_found', 404);
     } catch (error) {

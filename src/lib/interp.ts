@@ -1,7 +1,7 @@
 import type { BaziResult } from '../engine/bazi'
 import type { VedicResult } from '../engine/vedic'
 
-export type InterpMode = 'merge' | 'family' | 'study' | 'career' | 'marriage' | 'health' | 'social'
+export type InterpMode = 'merge' | 'family' | 'study' | 'career' | 'marriage' | 'health' | 'social' | 'ask'
 
 export const DIRECTIONS: { mode: InterpMode; label: string }[] = [
   { mode: 'family', label: '家运亲情' },
@@ -115,12 +115,30 @@ export function openingLine(element: string): string {
 
 export type StreamEvent =
   | { kind: 'open' }
+  | { kind: 'meta'; session: string }
   | { kind: 'delta'; text: string }
   | { kind: 'replace'; text: string }
-  | { kind: 'done' }
+  | { kind: 'done'; replies?: number }
   | { kind: 'error'; code: string }
   | { kind: 'stopped' }
   | { kind: 'network' }
+
+const VISITOR_KEY = 'xuanjige.visitor.v1'
+let memoryVisitor = ''
+
+// 会话归属靠这个本机标识；拿不到存储时退化为本页内存值。
+export function visitorId(): string {
+  try {
+    const saved = localStorage.getItem(VISITOR_KEY)
+    if (saved && /^[0-9a-f-]{36}$/i.test(saved)) return saved
+    const id = crypto.randomUUID()
+    localStorage.setItem(VISITOR_KEY, id)
+    return id
+  } catch {
+    if (!memoryVisitor) memoryVisitor = crypto.randomUUID()
+    return memoryVisitor
+  }
+}
 
 export const FALLBACK: Record<string, string> = {
   network: '阁外风大，线路一时不通。请稍候再问。',
@@ -144,7 +162,6 @@ export function fallbackText(code: string): string {
 }
 
 type FetchOutcome = Response | 'stopped' | 'timeout' | 'network'
-type EventPoll = { text?: string; state?: string }
 
 const START_BUDGET = 30000
 const POLL_BUDGET = 12000
@@ -190,54 +207,15 @@ async function errorCodeOf(response: Response): Promise<string> {
   }
 }
 
-// 两段式问答：POST 起会话并投递盘面，随后短轮询取回结果。
-// 平台对单次响应有约 60 秒上限，而首字可能迟至 50 秒才出现，长连接必被截断。
-export async function streamInterpret(
-  payload: ChartPayload,
-  mode: InterpMode,
+type EventPoll = { text?: string; state?: string; replies?: number }
+
+async function pollReply(
+  session: string,
+  baseline: number,
+  settle: 'turn' | 'reply',
   onEvent: (event: StreamEvent) => void,
   external: AbortSignal,
 ): Promise<void> {
-  const start = await call(
-    '/functions/v1/app/api/interpret',
-    {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-request-id': crypto.randomUUID() },
-      body: JSON.stringify({ mode, chart: payload }),
-    },
-    START_BUDGET,
-    external,
-  )
-  if (start === 'stopped') {
-    onEvent({ kind: 'stopped' })
-    return
-  }
-  if (start === 'timeout') {
-    onEvent({ kind: 'error', code: 'timeout' })
-    return
-  }
-  if (start === 'network') {
-    onEvent({ kind: 'network' })
-    return
-  }
-  if (!start.ok) {
-    onEvent({ kind: 'error', code: await errorCodeOf(start) })
-    return
-  }
-
-  let session = ''
-  try {
-    const data = (await start.json()) as { session?: string }
-    if (typeof data?.session === 'string') session = data.session
-  } catch {
-    /* 非 JSON 一律按未起会话处理 */
-  }
-  if (!/^sess_[A-Za-z0-9_-]+$/.test(session)) {
-    onEvent({ kind: 'error', code: 'service_unavailable' })
-    return
-  }
-
-  onEvent({ kind: 'open' })
   let text = ''
   let misses = 0
   const until = Date.now() + RUN_BUDGET
@@ -281,8 +259,15 @@ export async function streamInterpret(
       text = data.text
       onEvent({ kind: 'replace', text })
     }
+    const replies = typeof data.replies === 'number' ? data.replies : 0
+    if (settle === 'reply' && replies > baseline) {
+      onEvent({ kind: 'done', replies })
+      return
+    }
     if (data.state === 'completed') {
-      if (text) onEvent({ kind: 'done' })
+      // 追问等待期里，上一轮的 completed 不算本轮结束，继续等新回复。
+      if (settle === 'reply') continue
+      if (text) onEvent({ kind: 'done', replies })
       else onEvent({ kind: 'error', code: 'no_reply' })
       return
     }
@@ -296,4 +281,95 @@ export async function streamInterpret(
     }
   }
   onEvent({ kind: 'error', code: text ? 'timeout' : 'no_reply' })
+}
+
+// 两段式问答：POST 起会话并投递盘面，随后短轮询取回结果。
+// 平台对单次响应有约 60 秒上限，而首字可能迟至 50 秒才出现，长连接必被截断。
+export async function streamInterpret(
+  payload: ChartPayload,
+  mode: InterpMode,
+  onEvent: (event: StreamEvent) => void,
+  external: AbortSignal,
+  question?: string,
+): Promise<void> {
+  const start = await call(
+    '/functions/v1/app/api/interpret',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-request-id': crypto.randomUUID() },
+      body: JSON.stringify({ mode, chart: payload, visitor: visitorId(), ...(question ? { question } : {}) }),
+    },
+    START_BUDGET,
+    external,
+  )
+  if (start === 'stopped') {
+    onEvent({ kind: 'stopped' })
+    return
+  }
+  if (start === 'timeout') {
+    onEvent({ kind: 'error', code: 'timeout' })
+    return
+  }
+  if (start === 'network') {
+    onEvent({ kind: 'network' })
+    return
+  }
+  if (!start.ok) {
+    onEvent({ kind: 'error', code: await errorCodeOf(start) })
+    return
+  }
+
+  let session = ''
+  try {
+    const data = (await start.json()) as { session?: string }
+    if (typeof data?.session === 'string') session = data.session
+  } catch {
+    /* 非 JSON 一律按未起会话处理 */
+  }
+  if (!/^sess_[A-Za-z0-9_-]+$/.test(session)) {
+    onEvent({ kind: 'error', code: 'service_unavailable' })
+    return
+  }
+
+  onEvent({ kind: 'meta', session })
+  onEvent({ kind: 'open' })
+  await pollReply(session, 0, 'turn', onEvent, external)
+}
+
+// 追问沿用同一会话：模型看得到前文与同一张盘，只等新一条回复出现。
+export async function askFollowUp(
+  session: string,
+  question: string,
+  baseline: number,
+  onEvent: (event: StreamEvent) => void,
+  external: AbortSignal,
+): Promise<void> {
+  const start = await call(
+    '/functions/v1/app/api/ask',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-request-id': crypto.randomUUID() },
+      body: JSON.stringify({ session, visitor: visitorId(), question }),
+    },
+    START_BUDGET,
+    external,
+  )
+  if (start === 'stopped') {
+    onEvent({ kind: 'stopped' })
+    return
+  }
+  if (start === 'timeout') {
+    onEvent({ kind: 'error', code: 'timeout' })
+    return
+  }
+  if (start === 'network') {
+    onEvent({ kind: 'network' })
+    return
+  }
+  if (!start.ok) {
+    onEvent({ kind: 'error', code: await errorCodeOf(start) })
+    return
+  }
+  onEvent({ kind: 'open' })
+  await pollReply(session, baseline, 'reply', onEvent, external)
 }
