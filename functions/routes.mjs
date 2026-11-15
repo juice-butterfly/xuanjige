@@ -222,8 +222,10 @@ async function pickModel(cloud) {
   if (cachedModel) return cachedModel;
   const result = await cloud.request('/api/v1/cloud/models');
   const list = Array.isArray(result?.data) ? result.data : [];
-  const enabled = list.filter(m => m && typeof m.id === 'string');
-  const chosen = enabled.find(m => m.enabled === true || m.status === 'enabled') ?? enabled.find(m => m.enabled !== false && m.status !== 'disabled' && m.status !== 'unavailable');
+  // 列表字段为 is_enabled；首项通常是 auto（平台自动路由）。
+  const chosen = list.find(m => m && typeof m.id === 'string'
+    && m.is_enabled !== false && m.enabled !== false
+    && m.status !== 'disabled' && m.status !== 'unavailable');
   if (!chosen) fail('ai_model_unavailable', 503);
   cachedModel = chosen.id;
   return cachedModel;
@@ -287,7 +289,7 @@ async function startSession(mode, chart) {
     method: 'POST',
     body: { events: [{ type: 'user.message', content: [{ type: 'text', text: prompt }] }] },
   });
-  return session.id;
+  return { session: session.id, model };
 }
 
 async function interpret(request, ctx, requireUserFn) {
@@ -305,8 +307,8 @@ async function interpret(request, ctx, requireUserFn) {
     if (!MODES.has(body?.mode)) fail('invalid_input', 400);
     const chart = validChart(body.chart);
     if (!chart) fail('invalid_input', 400);
-    const session = await startSession(body.mode, chart);
-    return Response.json({ session }, { headers: { 'cache-control': 'no-store' } });
+    const started = await startSession(body.mode, chart);
+    return Response.json(started, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     return failResponse(error);
   }
