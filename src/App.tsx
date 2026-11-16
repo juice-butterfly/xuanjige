@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Chapter } from './components/Chapter'
 import { BaziChart } from './components/BaziChart'
+import { LogoMark } from './components/LogoMark'
 import { MasterScreen } from './components/MasterScreen'
 import { MatchScreen } from './components/MatchScreen'
 import { VedicChart } from './components/VedicChart'
@@ -271,9 +272,7 @@ function App() {
 
       <header className="masthead">
         <div className="brand">
-          <span className="seal" aria-hidden="true">
-            玄
-          </span>
+          <LogoMark />
           <span className="brand-copy">
             <span className="brand-title">玄机阁</span>
             <span className="brand-sub">中西合参 · 命盘</span>

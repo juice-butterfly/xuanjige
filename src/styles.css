@@ -32,6 +32,7 @@
   --plaque-line: rgba(201, 162, 39, 0.18);
   --plaque-line-hover: rgba(11, 11, 13, 0.28);
   --seal-ink: #eadfc8;
+  --brand-dot: #c0543f;
   --link-hover: #e2c46a;
   --seg-active: rgba(201, 162, 39, 0.06);
   --font-kai: "Kaiti SC", "STKaiti", "KaiTi", "Kaiti TC", "Songti SC", "SimSun", serif;
@@ -64,6 +65,7 @@ html[data-theme="day"] {
   --plaque-line: rgba(138, 106, 24, 0.2);
   --plaque-line-hover: rgba(245, 239, 227, 0.4);
   --seal-ink: #f1e8d5;
+  --brand-dot: #8c2f26;
   --link-hover: #5f4a10;
   --seg-active: rgba(138, 106, 24, 0.09);
 }
@@ -195,27 +197,11 @@ p {
   gap: 13px;
 }
 
-.seal {
-  position: relative;
-  display: grid;
-  place-items: center;
+.brand-mark {
   flex: none;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--site-radius);
-  background: var(--cinnabar);
-  color: var(--seal-ink);
-  font-family: var(--font-kai);
-  font-size: 21px;
-  line-height: 1;
-}
-
-.seal::after {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  border: 1px solid rgba(234, 223, 200, 0.42);
-  pointer-events: none;
+  width: 40px;
+  height: 40px;
+  color: var(--site-fg);
 }
 
 .brand-copy {
@@ -1193,10 +1179,9 @@ p {
     letter-spacing: 0.3em;
   }
 
-  .seal {
+  .brand-mark {
     width: 32px;
     height: 32px;
-    font-size: 19px;
   }
 
   .tab {
