@@ -1,15 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle
-    cx="32"
-    cy="32"
-    r="22.5"
-    fill="none"
-    stroke="#B08A34"
-    stroke-width="3.6"
-    stroke-linecap="round"
-    stroke-dasharray="89.7 51.7"
-    stroke-dashoffset="115.55"
-    transform="rotate(-90 32 32)"
-  />
-  <circle cx="32" cy="32" r="3.6" fill="#C0543F" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <mask id="m">
+      <rect width="48" height="48" fill="#000"/>
+      <circle cx="35.2" cy="10.2" r="7" fill="#fff"/>
+      <circle cx="36.6" cy="8" r="6.1" fill="#000"/>
+    </mask>
+  </defs>
+  <rect width="48" height="48" fill="#C0543F" mask="url(#m)"/>
+  <path d="M5.6 28C6.8 29.8 7.6 30.6 9 30.4C13.4 29.6 18.2 25.6 21.8 23.6L26.2 23.6C29.8 25.6 34.6 29.6 39 30.4C40.4 30.6 41.2 29.8 42.4 28"
+    fill="none" stroke="#B08A34" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

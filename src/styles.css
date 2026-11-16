@@ -199,8 +199,8 @@ p {
 
 .brand-mark {
   flex: none;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   color: var(--site-fg);
 }
 
@@ -1180,8 +1180,8 @@ p {
   }
 
   .brand-mark {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
   }
 
   .tab {
