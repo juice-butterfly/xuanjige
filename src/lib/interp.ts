@@ -113,6 +113,12 @@ export function openingLine(element: string): string {
   return OPENING[element] ?? '两盘已陈，先生开卷。'
 }
 
+export function directionLabel(mode: InterpMode): string {
+  if (mode === 'merge') return '合参'
+  if (mode === 'ask') return '追问'
+  return DIRECTIONS.find((d) => d.mode === mode)?.label ?? ''
+}
+
 export type StreamEvent =
   | { kind: 'open' }
   | { kind: 'meta'; session: string }
@@ -165,7 +171,12 @@ type FetchOutcome = Response | 'stopped' | 'timeout' | 'network'
 
 const START_BUDGET = 30000
 const POLL_BUDGET = 12000
+// 首字常要十几到几十秒；头几轮走密一点，先接住刚出现的字，随后放缓，少打上游。
+const POLL_FAST = 700
+const POLL_FAST_TRIES = 8
 const POLL_INTERVAL = 1500
+const POLL_SLOW = 2500
+const POLL_SLOW_AFTER = 24000
 const RUN_BUDGET = 180000
 
 function wait(ms: number) {
@@ -218,9 +229,14 @@ async function pollReply(
 ): Promise<void> {
   let text = ''
   let misses = 0
-  const until = Date.now() + RUN_BUDGET
+  let tries = 0
+  const began = Date.now()
+  const until = began + RUN_BUDGET
   while (Date.now() < until) {
-    await wait(POLL_INTERVAL)
+    const age = Date.now() - began
+    const gap = tries < POLL_FAST_TRIES ? POLL_FAST : age > POLL_SLOW_AFTER ? POLL_SLOW : POLL_INTERVAL
+    tries++
+    await wait(gap)
     if (external.aborted) {
       onEvent({ kind: 'stopped' })
       return
@@ -256,8 +272,13 @@ async function pollReply(
     }
     misses = 0
     if (typeof data.text === 'string' && data.text && data.text !== text) {
+      // 服务端每次给的是整段最新文本；能接上就只送新增的尾巴，读的人不必重看。
+      if (text && data.text.startsWith(text)) {
+        onEvent({ kind: 'delta', text: data.text.slice(text.length) })
+      } else {
+        onEvent({ kind: 'replace', text: data.text })
+      }
       text = data.text
-      onEvent({ kind: 'replace', text })
     }
     const replies = typeof data.replies === 'number' ? data.replies : 0
     if (settle === 'reply' && replies > baseline) {

@@ -886,38 +886,57 @@ p {
 
 .master-top {
   display: flex;
-  align-items: stretch;
-  border-bottom: 1px solid var(--hairline-soft);
+  flex-direction: column;
 }
 
 .master-open {
-  flex: 1 1 52%;
-  padding: 18px 20px;
+  position: relative;
+  padding: 21px 22px 18px 28px;
   font-family: var(--font-kai);
-  font-size: 15px;
-  line-height: 1.9;
-  letter-spacing: 0.12em;
+  font-size: 16.5px;
+  line-height: 1.95;
+  letter-spacing: 0.1em;
   color: var(--paper-dim);
 }
 
+.master-open::before {
+  content: "";
+  position: absolute;
+  top: 23px;
+  bottom: 21px;
+  left: 14px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--site-accent), transparent);
+  opacity: 0.6;
+}
+
 .master-actions {
-  flex: 1 1 48%;
-  display: flex;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  padding: 14px 16px;
-  border-left: 1px solid var(--hairline-soft);
+  padding: 14px 20px 17px;
+  border-top: 1px solid var(--hairline-soft);
+}
+
+.master-actions-label {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.32em;
+  color: var(--gold-dim);
 }
 
 .master-btn {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
   border: 1px solid var(--hairline);
   border-radius: var(--site-radius);
   background: transparent;
-  padding: 7px 13px;
-  font-size: 12px;
+  padding: 6px 10px;
+  font-size: 12.5px;
   letter-spacing: 0.14em;
   color: var(--paper-dim);
   cursor: pointer;
@@ -930,21 +949,32 @@ p {
 .master-btn:hover:not(:disabled) {
   border-color: var(--site-accent);
   color: var(--site-accent);
-}
-
-.master-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.master-btn--active {
-  border-color: var(--site-accent);
-  color: var(--site-accent);
   background: var(--seg-active);
 }
 
+.master-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.master-btn--active,
+.master-btn--active:hover:not(:disabled) {
+  border-color: var(--site-accent);
+  background: var(--site-accent);
+  color: var(--site-on-accent);
+}
+
+/* 推演中其余方向不可点，但选中的那一项要留得住，别跟着一起暗下去。 */
+.master-btn--active:disabled {
+  opacity: 1;
+}
+
 .master-btn--merge {
+  grid-column: span 2;
   border-color: var(--gold-dim);
+}
+
+.master-btn--merge:not(.master-btn--active) {
   color: var(--site-accent);
 }
 
@@ -953,7 +983,7 @@ p {
   font-size: 11px;
   letter-spacing: 0.12em;
   color: var(--site-muted);
-  border-bottom: 1px solid var(--hairline-soft);
+  border-top: 1px solid var(--hairline-soft);
 }
 
 .master-hint--err {
@@ -965,36 +995,183 @@ p {
 }
 
 .master-output {
-  min-height: 150px;
-  max-height: 46vh;
-  overflow-y: auto;
-  padding: 20px;
+  padding: 22px 24px 24px;
+  border-top: 1px solid var(--hairline-soft);
 }
 
 .master-quiet {
-  padding: 40px 0;
-  font-size: 12px;
+  padding: 26px 0 6px;
+  font-size: 13px;
   letter-spacing: 0.14em;
+  color: var(--paper-dim);
+  text-align: center;
+}
+
+.master-quiet-sub {
+  padding: 0 0 24px;
+  font-size: 11px;
+  line-height: 1.9;
+  letter-spacing: 0.1em;
   color: var(--site-muted);
   text-align: center;
 }
 
+.master-answer {
+  scroll-margin-top: 16px;
+}
+
+.master-answer-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.master-answer-k {
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.32em;
+  color: var(--gold-dim);
+}
+
+.master-answer-mode {
+  font-family: var(--font-kai);
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 0.24em;
+  color: var(--site-accent);
+}
+
+.master-answer-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--hairline-soft);
+  transform: translateY(-3px);
+}
+
 .master-text {
-  font-size: 13.5px;
-  line-height: 2.05;
-  letter-spacing: 0.05em;
+  max-width: 33em;
+  font-size: 15.5px;
+  line-height: 1.95;
+  letter-spacing: 0.01em;
   color: var(--site-fg);
-  white-space: pre-wrap;
+}
+
+.master-p {
+  margin: 0 0 15px;
+  white-space: pre-line;
   text-wrap: pretty;
 }
 
+.master-h3 {
+  margin: 26px 0 10px;
+  font-family: var(--font-kai);
+  font-size: 16.5px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  color: var(--site-accent);
+}
+
+.master-text > .master-h3:first-child {
+  margin-top: 0;
+}
+
+.master-evidence {
+  margin: -6px 0 16px;
+  padding-left: 12px;
+  border-left: 1px solid var(--hairline);
+  font-size: 13px;
+  line-height: 1.85;
+  letter-spacing: 0.02em;
+  color: var(--paper-dim);
+}
+
+.master-evidence-k {
+  color: var(--gold-dim);
+}
+
+.master-disclaimer {
+  margin: 24px 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--hairline-soft);
+  font-size: 11.5px;
+  line-height: 1.8;
+  letter-spacing: 0.08em;
+  color: var(--site-muted);
+}
+
+.master-typing {
+  margin-top: 16px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--site-muted);
+}
+
+.master-wait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 34px 0 30px;
+}
+
+.master-wait-dots {
+  display: inline-flex;
+  gap: 7px;
+}
+
+.master-wait-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--site-accent);
+  opacity: 0.22;
+  animation: master-ink 1.5s ease-in-out infinite;
+}
+
+.master-wait-dots i:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.master-wait-dots i:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes master-ink {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.master-wait-text {
+  font-family: var(--font-kai);
+  font-size: 14.5px;
+  line-height: 1.7;
+  letter-spacing: 0.14em;
+  color: var(--paper-dim);
+  text-align: center;
+}
+
+.master-wait-meta {
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  color: var(--site-muted);
+}
+
 .master-stop {
-  margin-top: 12px;
+  margin-top: 18px;
 }
 
 .master-note-line {
-  margin-top: 12px;
-  font-size: 12px;
+  margin-top: 14px;
+  font-size: 12.5px;
   line-height: 1.8;
   letter-spacing: 0.08em;
   color: var(--cinnabar-text);
@@ -1002,7 +1179,7 @@ p {
 
 .master-note-line--only {
   margin-top: 0;
-  padding: 30px 0;
+  padding: 24px 0;
   text-align: center;
 }
 
@@ -1019,7 +1196,7 @@ p {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px 13px;
+  padding: 12px 18px 14px;
   border-top: 1px solid var(--hairline-soft);
 }
 
@@ -1030,7 +1207,7 @@ p {
   border: 1px solid var(--hairline);
   border-radius: var(--site-radius);
   background: transparent;
-  padding: 9px 12px;
+  padding: 10px 12px;
   font-family: inherit;
   font-size: 12.5px;
   letter-spacing: 0.06em;
@@ -1059,10 +1236,10 @@ p {
 }
 
 .master-asked {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px dashed var(--hairline-soft);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.8;
   letter-spacing: 0.08em;
   color: var(--site-muted);
@@ -2625,41 +2802,56 @@ html[data-theme="day"] .wx-track {
 /* ── 玄机先生响应式 ─────────────────────── */
 
 @media (max-width: 760px) {
-  .master-top {
-    flex-direction: column;
+  .master-open {
+    padding: 17px 16px 15px 23px;
+    font-size: 15.5px;
   }
 
-  .master-open {
-    padding: 15px 16px 13px;
-    font-size: 14px;
+  .master-open::before {
+    top: 19px;
+    bottom: 17px;
+    left: 11px;
   }
 
   .master-actions {
-    justify-content: flex-start;
-    padding: 12px 14px;
-    border-left: 0;
-    border-top: 1px solid var(--hairline-soft);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 12px 14px 15px;
+  }
+
+  .master-btn--merge {
+    grid-column: 1 / -1;
   }
 
   .master-output {
-    max-height: 52vh;
-    padding: 16px 14px;
+    padding: 18px 15px 22px;
+  }
+
+  .master-text {
+    font-size: 15px;
+  }
+
+  .master-h3 {
+    font-size: 16px;
+  }
+
+  .master-quiet {
+    padding: 22px 0 6px;
   }
 
   .master-ask {
-    padding: 10px 14px 11px;
+    padding: 10px 14px 12px;
   }
 }
 
 @media (max-width: 350px) {
   .master-btn {
-    padding: 6px 10px;
+    padding: 6px 8px;
     font-size: 11px;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
   }
 
   .master-text {
-    font-size: 12.5px;
+    font-size: 14.5px;
   }
 }
 

@@ -6,6 +6,7 @@ import {
   DIRECTIONS,
   askFollowUp,
   buildChartPayload,
+  directionLabel,
   fallbackText,
   openingLine,
   streamInterpret,
@@ -36,6 +37,105 @@ type RunState =
 
 const STOP_NOTE = '已止。半截的话，作半截听。'
 
+const HEADING_RE = /^[一二三四五六七八九十]+、/
+const EVIDENCE_RE = /^(中式依据|印占依据|依据)[：:]\s*/
+const DISCLAIMER_AT = '本解读为传统文化娱乐内容'
+
+type Block =
+  | { kind: 'h'; text: string }
+  | { kind: 'evidence'; label: string; text: string }
+  | { kind: 'p'; text: string }
+
+function parseBlocks(text: string): Block[] {
+  const blocks: Block[] = []
+  let buffer: string[] = []
+  const flush = () => {
+    const joined = buffer.join('\n').trim()
+    if (joined) blocks.push({ kind: 'p', text: joined })
+    buffer = []
+  }
+  for (const raw of text.split('\n')) {
+    const line = raw.trim()
+    if (!line) {
+      flush()
+      continue
+    }
+    if (HEADING_RE.test(line) && line.length <= 24) {
+      flush()
+      blocks.push({ kind: 'h', text: line })
+      continue
+    }
+    const evidence = line.match(EVIDENCE_RE)
+    if (evidence) {
+      flush()
+      blocks.push({ kind: 'evidence', label: evidence[0].trim(), text: line.slice(evidence[0].length) })
+      continue
+    }
+    buffer.push(line)
+  }
+  flush()
+  return blocks
+}
+
+function splitDisclaimer(text: string): [string, string] {
+  const at = text.lastIndexOf(DISCLAIMER_AT)
+  if (at < 0) return [text, '']
+  return [text.slice(0, at).trimEnd(), text.slice(at).trim()]
+}
+
+function AnswerBody({ text, busy }: { text: string; busy: boolean }) {
+  const [body, disclaimer] = splitDisclaimer(text)
+  return (
+    <div className="master-text">
+      {parseBlocks(body).map((block, index) => {
+        if (block.kind === 'h') {
+          return (
+            <h3 className="master-h3" key={index}>
+              {block.text}
+            </h3>
+          )
+        }
+        if (block.kind === 'evidence') {
+          return (
+            <p className="master-evidence" key={index}>
+              <span className="master-evidence-k">{block.label}</span>
+              {block.text}
+            </p>
+          )
+        }
+        return (
+          <p className="master-p" key={index}>
+            {block.text}
+          </p>
+        )
+      })}
+      {disclaimer && <p className="master-disclaimer">{disclaimer}</p>}
+      {busy && <p className="master-typing">先生仍在说……</p>}
+    </div>
+  )
+}
+
+function waitText(seconds: number): string {
+  if (seconds < 6) return '先生净手展卷，两盘并陈。'
+  if (seconds < 16) return '四柱与印占盘，先生正逐宫看过去。'
+  if (seconds < 30) return '这一问要细看，约需三十息。'
+  return '先生沉吟未止——仍可再候，或先止住。'
+}
+
+function WaitNote({ seconds }: { seconds: number }) {
+  return (
+    <div className="master-wait" role="status">
+      <span className="master-wait-dots" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+      <p className="master-wait-text">{waitText(seconds)}</p>
+      {seconds >= 6 && <p className="master-wait-meta">已候 {seconds} 秒</p>}
+    </div>
+  )
+}
+
 export function MasterScreen({
   entry,
   onForm,
@@ -49,11 +149,13 @@ export function MasterScreen({
   const [vedicNonce, setVedicNonce] = useState(0)
   const [run, setRun] = useState<RunState>({ phase: 'idle' })
   const [askText, setAskText] = useState('')
+  const [seconds, setSeconds] = useState(0)
+  const [runKey, setRunKey] = useState(0)
   const abortRef = useRef<AbortController | null>(null)
   const runSeq = useRef(0)
   const sessionRef = useRef('')
   const repliesRef = useRef(0)
-  const outputRef = useRef<HTMLDivElement | null>(null)
+  const answerRef = useRef<HTMLDivElement | null>(null)
 
   const bazi = useMemo(() => {
     if (!entry || !entry.time) return null
@@ -99,9 +201,15 @@ export function MasterScreen({
   }, [entry, vedicNonce])
 
   useEffect(() => {
-    const node = outputRef.current
-    if (node) node.scrollTop = node.scrollHeight
-  }, [run])
+    if (run.phase !== 'busy') {
+      setSeconds(0)
+      return
+    }
+    const began = Date.now()
+    setSeconds(0)
+    const timer = window.setInterval(() => setSeconds(Math.floor((Date.now() - began) / 1000)), 1000)
+    return () => window.clearInterval(timer)
+  }, [run.phase, runKey])
 
   useEffect(() => {
     return () => abortRef.current?.abort()
@@ -117,6 +225,16 @@ export function MasterScreen({
     setAskText('')
   }, [entry])
 
+  // 只在读的人已经翻过头时，把答案开头带回眼前；往下长的时候不拽着人走。
+  function revealAnswer() {
+    requestAnimationFrame(() => {
+      const node = answerRef.current
+      if (node && node.getBoundingClientRect().top < 0) {
+        node.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    })
+  }
+
   function startRun(mode: InterpMode, question?: string) {
     if (!entry || !bazi || vedic.status !== 'ready') return
     abortRef.current?.abort()
@@ -126,6 +244,8 @@ export function MasterScreen({
     const payload = buildChartPayload(bazi, vedic.data, entry.gender)
     const session = sessionRef.current
     setRun({ phase: 'busy', mode, text: '', asked: question })
+    setRunKey((key) => key + 1)
+    revealAnswer()
     const handle = (event: StreamEvent) => {
       if (token !== runSeq.current) return
       if (event.kind === 'meta') {
@@ -230,7 +350,7 @@ export function MasterScreen({
   const opening = bazi ? openingLine(bazi.day_master_element) : ''
   const chartsReady = vedic.status === 'ready'
   const busy = run.phase === 'busy'
-  const activeMode = busy ? run.mode : run.phase === 'idle' ? null : run.mode
+  const activeMode = run.phase === 'idle' ? null : run.mode
   const showTail = !(
     (run.phase === 'done' || run.phase === 'stopped') &&
     run.text.includes('不构成任何决策依据')
@@ -256,7 +376,10 @@ export function MasterScreen({
       <div className="master-live">
         <div className="master-top">
           <p className="master-open">{opening}</p>
-          <div className="master-actions" role="group" aria-label="解读方向">
+          <div className="master-actions" role="group" aria-label="问事方向">
+            <span className="master-actions-label" aria-hidden="true">
+              问事方向
+            </span>
             {DIRECTIONS.map((d) => (
               <button
                 key={d.mode}
@@ -289,34 +412,45 @@ export function MasterScreen({
           </p>
         )}
 
-        <div className="master-output" ref={outputRef} aria-live="polite">
-          {run.phase !== 'idle' && run.asked && <p className="master-asked">问：{run.asked}</p>}
-          {run.phase === 'idle' && <p className="master-quiet">点一个方向，或请先生合参。</p>}
-          {run.phase === 'busy' && (
+        <div className="master-output" aria-live="polite">
+          {run.phase === 'idle' ? (
             <>
-              <p className="master-text">{run.text || '先生翻盘中……'}</p>
-              <button className="link master-stop" type="button" onClick={stopRun}>
-                停止
-              </button>
+              <p className="master-quiet">点一个方向，先生按盘说话。</p>
+              <p className="master-quiet-sub">六方向各附依据；合参找印证，也找错位。</p>
             </>
-          )}
-          {run.phase === 'done' && <p className="master-text">{run.text}</p>}
-          {run.phase === 'stopped' && (
-            <>
-              {run.text && <p className="master-text">{run.text}</p>}
-              {run.note && (
-                <p className={`master-note-line${run.text ? '' : ' master-note-line--only'}`}>
-                  {run.note}
-                </p>
+          ) : (
+            <div className="master-answer" ref={answerRef}>
+              {run.asked && <p className="master-asked">问：{run.asked}</p>}
+              <div className="master-answer-head">
+                <span className="master-answer-k">先生答</span>
+                <span className="master-answer-mode">{directionLabel(run.mode)}</span>
+                <span className="master-answer-rule" aria-hidden="true" />
+              </div>
+
+              {run.text ? (
+                <AnswerBody text={run.text} busy={busy} />
+              ) : busy ? (
+                <WaitNote seconds={seconds} />
+              ) : null}
+
+              {busy && (
+                <button className="link master-stop" type="button" onClick={stopRun}>
+                  停止
+                </button>
               )}
-              <button
-                className="link master-stop"
-                type="button"
-                onClick={() => startRun(run.mode, run.asked)}
-              >
-                再问一次
-              </button>
-            </>
+              {run.phase === 'stopped' && (
+                <>
+                  {run.note && (
+                    <p className={`master-note-line${run.text ? '' : ' master-note-line--only'}`}>
+                      {run.note}
+                    </p>
+                  )}
+                  <button className="link master-stop" type="button" onClick={() => startRun(run.mode, run.asked)}>
+                    再问一次
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </div>
 
@@ -350,7 +484,7 @@ export function MasterScreen({
         )}
       </div>
 
-      <p className="screen-note">六方向，每条附依据；合参找印证，也找错位。</p>
+      <p className="screen-note">本页只陈六方向，不判生死，不承诺财运。</p>
     </>
   )
 }
