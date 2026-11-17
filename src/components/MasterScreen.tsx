@@ -244,7 +244,10 @@ export function MasterScreen({
   const selectedPartner =
     partners.find((partner) => partner.id === activePartnerId) ?? null
   const partnerBazi = useMemo(
-    () => (selectedPartner ? baziOf(selectedPartner) : null),
+    () =>
+      selectedPartner
+        ? baziOf({ ...selectedPartner, time: selectedPartner.time ?? NOON })
+        : null,
     [selectedPartner],
   )
 
@@ -274,14 +277,16 @@ export function MasterScreen({
     }
   }, [entry, vedicNonce])
 
-  // 对方盘只为「与关系人合参」而算；选中后才加载，按 id 记在内存里。
+  // 对方盘只为「与关系人合参」而算；选中后才加载，按 id+时刻记在内存里。
+  // 对方时辰不详时同样按正午暂排，盘面另注误差。
   useEffect(() => {
-    if (askMode !== 'relation' || !selectedPartner || !selectedPartner.time) {
+    if (askMode !== 'relation' || !selectedPartner) {
       setPartnerVedic(null)
       return
     }
-    const time = selectedPartner.time
-    const cached = partnerCache.current.get(selectedPartner.id)
+    const time = selectedPartner.time ?? NOON
+    const key = `${selectedPartner.id}:${time}`
+    const cached = partnerCache.current.get(key)
     if (cached) {
       setPartnerVedic({ id: selectedPartner.id, status: 'ready', data: cached })
       return
@@ -299,7 +304,7 @@ export function MasterScreen({
         }),
       )
       .then((data) => {
-        partnerCache.current.set(selectedPartner.id, data)
+        partnerCache.current.set(key, data)
         if (alive) setPartnerVedic({ id: selectedPartner.id, status: 'ready', data })
       })
       .catch(() => {
@@ -358,7 +363,7 @@ export function MasterScreen({
     if (intentRan.current === intent) return
     if (intent === 'relation') {
       if (selectedPartner) setAskMode('relation')
-      if (!selectedPartner || !selectedPartner.time || !selectedPartner.relation) {
+      if (!selectedPartner || !selectedPartner.relation) {
         intentRan.current = intent
         onIntentDone?.()
         return
@@ -422,7 +427,12 @@ export function MasterScreen({
       }
       extra = {
         relation: selectedPartner.relation,
-        partner: buildChartPayload(partnerBazi, partnerVedic.data, selectedPartner.gender),
+        partner: buildChartPayload(
+          partnerBazi,
+          partnerVedic.data,
+          selectedPartner.gender,
+          !selectedPartner.time,
+        ),
       }
     }
     abortRef.current?.abort()
@@ -731,8 +741,8 @@ export function MasterScreen({
                           )}
 
                           {!selectedPartner.time && (
-                            <p className="master-partner-block">
-                              对方时辰不详，合参不开。
+                            <p className="master-partner-hint">
+                              对方时辰不详：时柱、上升与宫位按正午暂排，合参仅供参考。
                               <button
                                 type="button"
                                 className="link"
@@ -743,7 +753,7 @@ export function MasterScreen({
                             </p>
                           )}
 
-                          {selectedPartner.time && selectedPartner.relation && (
+                          {selectedPartner.relation && (
                             <>
                               {partnerVedicHere?.status === 'loading' && (
                                 <p className="master-partner-hint">对方星盘排算中，稍候。</p>
