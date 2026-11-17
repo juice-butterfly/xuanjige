@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { Chapter } from './components/Chapter'
 import { CnChartPage } from './components/CnChartPage'
 import { LogoMark } from './components/LogoMark'
@@ -222,6 +222,32 @@ function App() {
   const [activePartnerId, setActivePartnerId] = useState<string | null>(null)
   const [partnerOpen, setPartnerOpen] = useState(false)
   const [partnerEditId, setPartnerEditId] = useState<string | null>(null)
+  const tabsRef = useRef<HTMLElement | null>(null)
+  const [tabInk, setTabInk] = useState<{ left: number; width: number } | null>(null)
+  const [tabInkOn, setTabInkOn] = useState(false)
+
+  useLayoutEffect(() => {
+    const nav = tabsRef.current
+    if (!nav) return
+    const measure = () => {
+      const active = nav.querySelector<HTMLElement>('.tab[aria-current="page"]')
+      if (!active) {
+        setTabInk(null)
+        return
+      }
+      setTabInk({ left: active.offsetLeft, width: active.offsetWidth })
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(nav)
+    return () => observer.disconnect()
+  }, [screen])
+
+  useEffect(() => {
+    if (!tabInk || tabInkOn) return
+    const timer = window.setTimeout(() => setTabInkOn(true), 60)
+    return () => window.clearTimeout(timer)
+  }, [tabInk, tabInkOn])
 
   useEffect(() => {
     writeStorage(DRAFT_KEY, draft)
@@ -460,7 +486,7 @@ function App() {
         </div>
       </header>
 
-      <nav className="tabs" aria-label="导航">
+      <nav className="tabs" aria-label="导航" ref={tabsRef} data-ink={tabInkOn ? 'on' : 'off'}>
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -475,6 +501,13 @@ function App() {
             <span>{tab.label}</span>
           </button>
         ))}
+        {tabInk && (
+          <span
+            className="tab-ink"
+            aria-hidden="true"
+            style={{ left: tabInk.left, width: tabInk.width }}
+          />
+        )}
       </nav>
 
       <main className={`page${screen !== 'master' ? ' page--wide' : ''}`}>

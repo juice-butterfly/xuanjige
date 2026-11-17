@@ -3,6 +3,7 @@ import { calcBazi } from '../engine/bazi'
 import type { VedicResult } from '../engine/vedic'
 import { Chapter } from './Chapter'
 import { Enso } from './Ornament'
+import { cnDate } from '../lib/format'
 import { pillarRows } from '../lib/match'
 import { baziOf, relationLabel, type Partner } from '../lib/partners'
 import {
@@ -702,6 +703,18 @@ export function MasterScreen({
 
                       {selectedPartner && partnerBazi && bazi && (
                         <div className="master-partner-card">
+                          <div className="master-partner-bio">
+                            <span className="master-partner-bio-k">
+                              {relationLabel(selectedPartner.relation)}
+                            </span>
+                            <p className="master-partner-bio-name">{selectedPartner.alias}</p>
+                            <p className="master-partner-bio-meta">
+                              {cnDate(selectedPartner.dob)} · {selectedPartner.province} ·{' '}
+                              {selectedPartner.city}
+                              {selectedPartner.time ? ` · ${selectedPartner.time}` : ' · 时辰不详'}
+                            </p>
+                          </div>
+
                           <details className="peek">
                             <summary className="peek-summary">
                               <span className="peek-title">两盘速览</span>

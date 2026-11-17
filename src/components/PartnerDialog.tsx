@@ -49,6 +49,13 @@ export function PartnerDialog({
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [error, setError] = useState('')
   const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [savedAt, setSavedAt] = useState(0)
+
+  useEffect(() => {
+    if (!savedAt) return
+    const timer = window.setTimeout(() => setSavedAt(0), 1200)
+    return () => window.clearTimeout(timer)
+  }, [savedAt])
 
   useEffect(() => {
     const node = dialogRef.current
@@ -92,6 +99,7 @@ export function PartnerDialog({
     setEditingId(null)
     setMode('form')
     setError('')
+    setSavedAt(0)
   }
 
   function startEdit(partner: Partner) {
@@ -116,6 +124,7 @@ export function PartnerDialog({
     setEditingId(partner.id)
     setMode('form')
     setError('')
+    setSavedAt(0)
   }
 
   function buildPartner(): Partner | null {
@@ -171,6 +180,7 @@ export function PartnerDialog({
     setEditingId(null)
     setError('')
     if (merge) onMerge(partner.id)
+    else setSavedAt(Date.now())
   }
 
   function removePartner(id: string) {
@@ -211,6 +221,12 @@ export function PartnerDialog({
             ×
           </button>
         </header>
+
+        {savedAt > 0 && (
+          <span className="partner-saved-seal" role="status" key={savedAt}>
+            已录
+          </span>
+        )}
 
         {mode === 'list' ? (
           <>
