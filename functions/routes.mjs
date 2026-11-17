@@ -17,7 +17,7 @@ const APP_SCOPE = 'xuanjige-master-v1';
 const cloud = createCloudAgentsClient({ origin: CLOUD_ORIGIN });
 const coordinator = createMemoryCoordinator();
 
-const MODES = new Set(['merge', 'family', 'study', 'career', 'marriage', 'health', 'social', 'ask']);
+const MODES = new Set(['merge', 'relation', 'family', 'study', 'career', 'marriage', 'health', 'social', 'ask']);
 // 固定模型：账号模型列表里的 DeepSeek-Flash。列表变动时退回第一个启用项。
 const PINNED_MODEL = 'dfmodel';
 const DIRECTION_CN = {
@@ -28,6 +28,22 @@ const DIRECTION_CN = {
   marriage: '婚恋感情',
   health: '健康',
   social: '人际',
+};
+const RELATION_CN = {
+  friend: '朋友',
+  partner: '情侣',
+  crush: '有好感的人',
+  family: '亲人',
+  stranger: '陌生人',
+  classmate: '同学',
+};
+const RELATION_SCALE = {
+  friend: '按朋友看，重点在相处的边界与分寸。',
+  partner: '按情侣看，重点在相处方式与磨合之处。',
+  crush: '按有好感的人看，重点在靠近的分寸；不预测对方心意，不替对方表态。',
+  family: '按亲人看，重点在代际差异与彼此的照应。',
+  stranger: '按陌生人看，只谈气场与初识相处的注意，不推断私交。',
+  classmate: '按同学看，重点在同侪之间的分寸与协作。',
 };
 const ELEMENTS = ['金', '木', '水', '火', '土'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -191,7 +207,7 @@ function chartBlock(chart) {
   return lines.join('\n');
 }
 
-function buildPrompt(mode, chart, question) {
+function buildPrompt(mode, chart, question, relation, partner) {
   if (mode === 'ask') {
     return [
       `【盘面】\n${chartBlock(chart)}`,
@@ -201,6 +217,31 @@ function buildPrompt(mode, chart, question) {
       '不判生死，不承诺财运，不做健康断言，不给具体金额。分点作答，至多四条，每条另起一行以「依据：」写明出处。',
       '输出纯文本，不用 Markdown 符号。',
     ].join('\n');
+  }
+  if (mode === 'relation') {
+    const label = RELATION_CN[relation];
+    const task = [
+      `【任务】就「${label}」这一关系，把本人盘与关系人盘合看。两盘各说各的依据，不可混为一谈。`,
+      `【关系尺度】${RELATION_SCALE[relation]}`,
+      '严格按以下四段输出：',
+      '一、两人底色：先本人、后关系人，各一两句；每条另起一行给「本人依据：…」「关系人依据：…」。',
+      '二、相合处：找两到三处，先给结论，再另起两行给双方依据。',
+      '三、相冲处：找两到三处，先给结论，再另起两行给双方依据。若确实找不到，本段直接写「两盘未见明显相冲」并简述缘由，不许编造矛盾。',
+      '四、相处建议：只写一句，具体可做，不判分合。',
+      '结尾固定一行：本解读为传统文化娱乐内容，不构成任何决策依据。',
+      '',
+      '【禁止】',
+      '- 不判两人合不合、不给分数、不断言结局。',
+      '- 不预测对方心意，不替对方表态或下结论。',
+      '- 禁止杂交术语（例：不许说「印占七杀」「八字上升星座」）。',
+      '- 禁止为凑结论硬拉因果或编造依据。',
+    ];
+    return [
+      `【本人盘】\n${chartBlock(chart)}`,
+      `【关系人盘 · ${label}】\n${chartBlock(partner)}`,
+      '',
+      task.join('\n'),
+    ].join('\n\n');
   }
   const task = [];
   if (mode === 'merge') {
@@ -305,8 +346,8 @@ function failResponse(error) {
   return Response.json({ error: { code: 'service_unavailable' } }, { status: 503 });
 }
 
-async function startSession(mode, chart, question, visitor) {
-  const prompt = buildPrompt(mode, chart, question);
+async function startSession(mode, chart, question, visitor, relation, partner) {
+  const prompt = buildPrompt(mode, chart, question, relation, partner);
   const model = await pickModel(cloud);
   const binding = await ensureCloudResources({
     client: cloud,
@@ -356,7 +397,15 @@ async function interpret(request, ctx, requireUserFn) {
       fail('invalid_input', 400);
     }
     const visitor = typeof body?.visitor === 'string' && UUID_RE.test(body.visitor) ? body.visitor : '';
-    const started = await startSession(body.mode, chart, question, visitor);
+    let relation = '';
+    let partner = null;
+    if (body.mode === 'relation') {
+      relation = typeof body?.relation === 'string' ? body.relation : '';
+      if (!Object.hasOwn(RELATION_CN, relation)) fail('invalid_input', 400);
+      partner = validChart(body.partner);
+      if (!partner) fail('invalid_input', 400);
+    }
+    const started = await startSession(body.mode, chart, question, visitor, relation, partner);
     return Response.json(started, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     return failResponse(error);

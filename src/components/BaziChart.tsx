@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { calcBazi, type Element, type PillarKey } from '../engine/bazi'
+import { calcBazi, type BaziResult, type Element, type PillarKey } from '../engine/bazi'
 import { Term, TermSheet, useTermSheet } from './Term'
 
 const ELEMENTS: Element[] = ['金', '木', '水', '火', '土']
@@ -94,6 +94,8 @@ export function BaziChart({
         <p className="bazi-hint">术语带虚点 · 点开看一句</p>
       </header>
 
+      <div className="bazi-layout">
+        <div className="bazi-main">
       <div className="pillars">
         {PILLAR_KEYS.map((key) => {
           const pillar = chart.pillars[key]
@@ -140,6 +142,20 @@ export function BaziChart({
                   纳音
                 </Term>
                 <span className="nayin">{pillar.nayin}</span>
+              </div>
+              <div className="pillar-misc">
+                <span>
+                  <Term name="空亡" className="term--label">
+                    空亡
+                  </Term>{' '}
+                  {chart.xun_kong[key] || '—'}
+                </span>
+                <span>
+                  <Term name="十二长生" className="term--label">
+                    长生
+                  </Term>{' '}
+                  {chart.di_shi[key] || '—'}
+                </span>
               </div>
             </article>
           )
@@ -296,67 +312,116 @@ export function BaziChart({
           <span className="details-hint">空亡 · 十二长生 · 命宫</span>
           <span className="details-toggle" aria-hidden="true" />
         </summary>
-        <div className="detail-grid">
-          <div className="detail-block">
-            <h4>
-              <Term name="空亡">空亡</Term>
-            </h4>
-            <dl className="detail-list">
-              {PILLAR_KEYS.map((key) => (
-                <div className="detail-row" key={key}>
-                  <dt>{POS_SHORT[key]}</dt>
-                  <dd>{chart.xun_kong[key] || '—'}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-          <div className="detail-block">
-            <h4>
-              <Term name="十二长生">十二长生</Term>
-            </h4>
-            <dl className="detail-list">
-              {PILLAR_KEYS.map((key) => (
-                <div className="detail-row" key={key}>
-                  <dt>{POS_SHORT[key]}</dt>
-                  <dd>{chart.di_shi[key] || '—'}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-          <div className="detail-block detail-block--wide">
-            <h4>宫位</h4>
-            <dl className="detail-list detail-list--inline">
-              <div className="detail-row">
-                <dt>
-                  <Term name="命宫">命宫</Term>
-                </dt>
-                <dd>{chart.ming_shen.命宫 || '—'}</dd>
-              </div>
-              <div className="detail-row">
-                <dt>
-                  <Term name="身宫">身宫</Term>
-                </dt>
-                <dd>{chart.ming_shen.身宫 || '—'}</dd>
-              </div>
-              <div className="detail-row">
-                <dt>
-                  <Term name="胎元">胎元</Term>
-                </dt>
-                <dd>{chart.ming_shen.胎元 || '—'}</dd>
-              </div>
-              <div className="detail-row">
-                <dt>
-                  <Term name="胎息">胎息</Term>
-                </dt>
-                <dd>{chart.ming_shen.胎息 || '—'}</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
+        <DetailBlocks chart={chart} />
       </details>
+        </div>
+
+        <aside className="bazi-side">
+          <section className="side-section">
+            <h2 className="side-k">盘面细节</h2>
+            <DetailBlocks chart={chart} />
+          </section>
+          <section className="side-section">
+            <h2 className="side-k">读盘三步</h2>
+            <ol className="side-steps">
+              <li>
+                <span className="side-step-n" aria-hidden="true">
+                  一
+                </span>
+                <p>
+                  <strong>先看日主强弱</strong>
+                  日主{chart.day_master}
+                  {chart.day_master_element}，{chart.day_strength}。
+                </p>
+              </li>
+              <li>
+                <span className="side-step-n" aria-hidden="true">
+                  二
+                </span>
+                <p>
+                  <strong>再看十神取舍</strong>
+                  喜用{chart.favorable.join('、') || '未定'}，十神定其用。
+                </p>
+              </li>
+              <li>
+                <span className="side-step-n" aria-hidden="true">
+                  三
+                </span>
+                <p>
+                  <strong>最后看大运与干支关系</strong>
+                  现运{chart.current_dayun || '未排'}；
+                  {relationLines.length ? '盘内有合冲，须并看。' : '盘内无明显合冲。'}
+                </p>
+              </li>
+            </ol>
+          </section>
+        </aside>
+      </div>
 
       <TermSheet term={activeTerm} onClose={close} />
     </section>
+  )
+}
+
+function DetailBlocks({ chart }: { chart: BaziResult }) {
+  return (
+    <div className="detail-grid">
+      <div className="detail-block">
+        <h4>
+          <Term name="空亡">空亡</Term>
+        </h4>
+        <dl className="detail-list">
+          {PILLAR_KEYS.map((key) => (
+            <div className="detail-row" key={key}>
+              <dt>{POS_SHORT[key]}</dt>
+              <dd>{chart.xun_kong[key] || '—'}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+      <div className="detail-block">
+        <h4>
+          <Term name="十二长生">十二长生</Term>
+        </h4>
+        <dl className="detail-list">
+          {PILLAR_KEYS.map((key) => (
+            <div className="detail-row" key={key}>
+              <dt>{POS_SHORT[key]}</dt>
+              <dd>{chart.di_shi[key] || '—'}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+      <div className="detail-block detail-block--wide">
+        <h4>宫位</h4>
+        <dl className="detail-list detail-list--inline">
+          <div className="detail-row">
+            <dt>
+              <Term name="命宫">命宫</Term>
+            </dt>
+            <dd>{chart.ming_shen.命宫 || '—'}</dd>
+          </div>
+          <div className="detail-row">
+            <dt>
+              <Term name="身宫">身宫</Term>
+            </dt>
+            <dd>{chart.ming_shen.身宫 || '—'}</dd>
+          </div>
+          <div className="detail-row">
+            <dt>
+              <Term name="胎元">胎元</Term>
+            </dt>
+            <dd>{chart.ming_shen.胎元 || '—'}</dd>
+          </div>
+          <div className="detail-row">
+            <dt>
+              <Term name="胎息">胎息</Term>
+            </dt>
+            <dd>{chart.ming_shen.胎息 || '—'}</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
   )
 }
 

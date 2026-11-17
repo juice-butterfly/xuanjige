@@ -1,7 +1,17 @@
 import type { BaziResult } from '../engine/bazi'
 import type { VedicResult } from '../engine/vedic'
+import type { Relation } from './partners'
 
-export type InterpMode = 'merge' | 'family' | 'study' | 'career' | 'marriage' | 'health' | 'social' | 'ask'
+export type InterpMode =
+  | 'merge'
+  | 'relation'
+  | 'family'
+  | 'study'
+  | 'career'
+  | 'marriage'
+  | 'health'
+  | 'social'
+  | 'ask'
 
 export const DIRECTIONS: { mode: InterpMode; label: string }[] = [
   { mode: 'family', label: '家运亲情' },
@@ -115,8 +125,14 @@ export function openingLine(element: string): string {
 
 export function directionLabel(mode: InterpMode): string {
   if (mode === 'merge') return '合参'
+  if (mode === 'relation') return '关系合参'
   if (mode === 'ask') return '追问'
   return DIRECTIONS.find((d) => d.mode === mode)?.label ?? ''
+}
+
+export type RelationExtra = {
+  relation: Relation
+  partner: ChartPayload
 }
 
 export type StreamEvent =
@@ -312,13 +328,20 @@ export async function streamInterpret(
   onEvent: (event: StreamEvent) => void,
   external: AbortSignal,
   question?: string,
+  extra?: RelationExtra,
 ): Promise<void> {
   const start = await call(
     '/functions/v1/app/api/interpret',
     {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-request-id': crypto.randomUUID() },
-      body: JSON.stringify({ mode, chart: payload, visitor: visitorId(), ...(question ? { question } : {}) }),
+      body: JSON.stringify({
+        mode,
+        chart: payload,
+        visitor: visitorId(),
+        ...(question ? { question } : {}),
+        ...(extra ? { relation: extra.relation, partner: extra.partner } : {}),
+      }),
     },
     START_BUDGET,
     external,

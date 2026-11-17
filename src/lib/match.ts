@@ -108,7 +108,7 @@ export const UNKNOWN = '未知'
 
 const PILLAR_LABEL: Record<string, string> = { year: '年柱', month: '月柱', day: '日柱', time: '时柱' }
 
-// 中式对照行：年柱、日柱、时柱（任一侧有才出）。相合相冲只取六合与六冲，
+// 中式对照行：年、月、日、时（任一侧有才出）。相合相冲只取六合与六冲，
 // 天干五合并入日柱行；细节句由 relationBetween 提供。
 export function pillarRows(a: BaziResult, b: BaziResult): MatchRow[] {
   const relOf = (x: string, y: string): { rel: MatchRel; tag: string } => {
@@ -127,6 +127,17 @@ export function pillarRows(a: BaziResult, b: BaziResult): MatchRow[] {
       ...relOf(a.pillars.year.ganzhi[1], b.pillars.year.ganzhi[1]),
     },
   ]
+
+  const monthA = a.pillars.month.ganzhi
+  const monthB = b.pillars.month.ganzhi
+  rows.push({
+    label: '月柱',
+    left: monthA,
+    leftSub: '',
+    right: monthB,
+    rightSub: '',
+    ...relOf(monthA[1], monthB[1]),
+  })
 
   const dayA = a.pillars.day.ganzhi
   const dayB = b.pillars.day.ganzhi

@@ -36,6 +36,20 @@ export function cnTime(value: string | null): string {
   return `${cnNumber(h)}时${cnPadded(m)}分`
 }
 
+export function plainDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  return `${y} 年 ${m} 月 ${d} 日`
+}
+
+const SHICHEN = '子丑寅卯辰巳午未申酉戌亥'
+
+export function shichen(value: string): string {
+  const h = Number(value.split(':')[0])
+  if (Number.isNaN(h)) return ''
+  return `${SHICHEN[Math.floor(((h + 1) % 24) / 2)]}时`
+}
+
 export function coordsLabel(lat: number, lon: number): string {
   return `北纬 ${lat.toFixed(2)}° · 东经 ${lon.toFixed(2)}°`
 }

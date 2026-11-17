@@ -11,6 +11,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test:bazi": "node --experimental-strip-types scripts/bazi.test.ts",
+    "test:calendar": "node --experimental-strip-types scripts/calendar.test.ts",
     "test:bazi:regression": "node --experimental-strip-types scripts/bazi-regression.ts",
     "test:timecn": "node --experimental-strip-types scripts/timecn.test.ts",
     "test:vedic": "node --experimental-strip-types scripts/vedic.test.ts",
