@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { Chapter } from './components/Chapter'
 import { CnChartPage } from './components/CnChartPage'
-import { LogoMark } from './components/LogoMark'
 import { MasterScreen } from './components/MasterScreen'
 import { CompassArt } from './components/Ornament'
 import { PartnerDialog } from './components/PartnerDialog'
@@ -433,7 +432,7 @@ function App() {
     <div className="site">
       <header className="masthead">
         <div className="brand">
-          <LogoMark />
+          <span className="brand-ear" aria-hidden="true" />
           <span className="brand-copy">
             <span className="brand-title">天机阁</span>
             <span className="brand-sub">中西合参 · 命盘</span>

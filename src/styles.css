@@ -190,11 +190,12 @@ p {
   gap: 13px;
 }
 
-.brand-mark {
+.brand-ear {
   flex: none;
-  width: 40px;
-  height: 40px;
-  color: var(--site-fg);
+  width: 1px;
+  height: 34px;
+  background: var(--gold-dim);
+  opacity: 0.9;
 }
 
 .brand-copy {
@@ -1856,9 +1857,8 @@ p {
     letter-spacing: 0.12em;
   }
 
-  .brand-mark {
-    width: 32px;
-    height: 32px;
+  .brand-ear {
+    height: 28px;
   }
 
   .tabs {
