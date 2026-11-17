@@ -24,6 +24,19 @@ type VedicState =
   | { status: 'ready'; data: VedicResult }
   | { status: 'error'; message: string }
 
+// 星历底层抛的是英文；引擎自身抛的中文（如夏令时缺时）原样保留
+function explainVedicError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : ''
+  if (/[\u4e00-\u9fff]/.test(raw)) return raw
+  if (/wasm|fetch|instantiat|Aborted|Failed to load/i.test(raw)) {
+    return '星历文件没能载入，多半是网络不稳。检查网络后再试一次。'
+  }
+  if (/julianDay|finite/i.test(raw)) {
+    return '按时辰与地点算不出准确星位。请检查出生时间与省份，或勾选“时辰不详”后重排。'
+  }
+  return '此盘一时没能算出。再试一次；若反复出现，检查出生时间与地点。'
+}
+
 export function VedicChart({
   dob,
   time,
@@ -38,6 +51,7 @@ export function VedicChart({
   lon: number
 }) {
   const [state, setState] = useState<VedicState>({ status: 'loading' })
+  const [attempt, setAttempt] = useState(0)
   const { activeTerm, handleTermClick, close } = useTermSheet()
 
   useEffect(() => {
@@ -49,17 +63,15 @@ export function VedicChart({
         if (alive) setState({ status: 'ready', data })
       })
       .catch((err: unknown) => {
+        console.error(err)
         if (alive) {
-          setState({
-            status: 'error',
-            message: err instanceof Error ? err.message : '星历加载失败，印占盘暂缺。',
-          })
+          setState({ status: 'error', message: explainVedicError(err) })
         }
       })
     return () => {
       alive = false
     }
-  }, [dob, time, place, lat, lon])
+  }, [dob, time, place, lat, lon, attempt])
 
   return (
     <section className="vedic" aria-label="西式印占命盘" onClick={handleTermClick}>
@@ -69,6 +81,9 @@ export function VedicChart({
         <div className="chart-blocked vedic-error">
           <p className="chart-blocked-k">印占未成</p>
           <p className="chart-blocked-text">{state.message}</p>
+          <button type="button" className="link" onClick={() => setAttempt((n) => n + 1)}>
+            再排一次
+          </button>
         </div>
       )}
       <TermSheet term={activeTerm} onClose={close} />
