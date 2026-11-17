@@ -435,7 +435,7 @@ function App() {
         <div className="brand">
           <LogoMark />
           <span className="brand-copy">
-            <span className="brand-title">玄机阁</span>
+            <span className="brand-title">天机阁</span>
             <span className="brand-sub">中西合参 · 命盘</span>
           </span>
         </div>

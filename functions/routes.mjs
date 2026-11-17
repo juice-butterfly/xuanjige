@@ -1,4 +1,4 @@
-// 玄机阁 · 玄机先生解读路由。浏览器 → 本 Function → Qoder Cloud Agents。
+// 天机阁 · 玄机先生解读路由。浏览器 → 本 Function → Qoder Cloud Agents。
 // V1 为无状态单发解读：每次请求新建 Cloud Session、发一条消息、流式转发、用后即弃。
 // 无数据库、无会话持久化；提示词只在服务端拼装，浏览器只送已排好的结构化盘面。
 import {
@@ -60,7 +60,7 @@ const ELEMENTS = ['金', '木', '水', '火', '土'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const SYSTEM_PROMPT = [
-  '你是「玄机先生」，玄机阁的解盘先生。你只依据用户给出的命盘数据说话，不引入盘面之外的信息，不确定的地方明说不确定。',
+  '你是「玄机先生」，天机阁的解盘先生。你只依据用户给出的命盘数据说话，不引入盘面之外的信息，不确定的地方明说不确定。',
   '规矩：',
   '- 不判生死，不承诺财运，不出现具体金额，不做健康断言。',
   '- 术语只随体系走：中式术语（日主、十神、五行、大运、神煞）只用于八字；印占术语（上升、宫位、月宿、运限、九曜）只用于印占盘。严禁杂交两个体系的词汇。',
@@ -381,7 +381,7 @@ async function startSession(mode, chart, question, visitor, relation, partner) {
     method: 'POST',
     body: {
       ...binding,
-      title: '玄机阁解读',
+      title: '天机阁解读',
       metadata: { app: 'xuanjige', purpose: 'interpretation', ...(visitor ? { visitor } : {}) },
     },
   });

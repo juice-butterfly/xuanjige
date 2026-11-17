@@ -163,7 +163,7 @@ const failed = rows.filter((r) => !r.passed)
 const headers = ['id', '分类', '四柱', '日主', '身强弱', '喜用神', '五行归一化最大误差']
 const widths = [6, 8, 14, 14, 16, 26, 20]
 
-console.log('玄机阁八字引擎 · 20 条回归自检')
+console.log('天机阁八字引擎 · 20 条回归自检')
 console.log('基准：回归样本20条.json（expected 只读，未改动）')
 console.log('判定：四柱逐字一致；五行归一化误差 ≤0.02；日主/日主五行/生肖/身强弱/喜用神/缺五行/现行大运完全一致')
 console.log('')
