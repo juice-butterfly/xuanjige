@@ -50,6 +50,11 @@ export function shichen(value: string): string {
   return `${SHICHEN[Math.floor(((h + 1) % 24) / 2)]}时`
 }
 
+// 旧存盘的 time 可能是空串，统一按“时辰不详”处理，避免把空串喂给星历
+export function chartTime(time: string | null, fallback: string): string {
+  return time && /^\d{2}:\d{2}$/.test(time) ? time : fallback
+}
+
 export function coordsLabel(lat: number, lon: number): string {
   return `北纬 ${lat.toFixed(2)}° · 东经 ${lon.toFixed(2)}°`
 }

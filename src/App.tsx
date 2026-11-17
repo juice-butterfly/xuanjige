@@ -169,7 +169,7 @@ function normalizeEntry(value: unknown): Entry | null {
     lat: v.lat,
     lon: v.lon,
     dob: v.dob,
-    time: typeof v.time === 'string' ? v.time : null,
+    time: typeof v.time === 'string' && /^\d{2}:\d{2}$/.test(v.time) ? v.time : null,
     timeUnknown: v.timeUnknown === true,
     gender: v.gender,
     calendar: keptLunar ? 'lunar' : 'solar',

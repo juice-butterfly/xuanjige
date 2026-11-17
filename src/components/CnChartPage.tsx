@@ -1,6 +1,7 @@
 import { BaziChart } from './BaziChart'
 import { Chapter } from './Chapter'
 import { RecordLine, type RecordEntry } from './RecordLine'
+import { chartTime } from '../lib/format'
 
 // 时辰不详时按正午暂排，时柱由引擎照常排出，页面另注明误差。
 const NOON = '12:00'
@@ -33,7 +34,7 @@ export function CnChartPage({
       {entry && (
         <BaziChart
           dob={entry.dob}
-          time={entry.time ?? NOON}
+          time={chartTime(entry.time, NOON)}
           gender={entry.gender}
         />
       )}

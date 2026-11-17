@@ -1,6 +1,7 @@
 import { Chapter } from './Chapter'
 import { RecordLine, type RecordEntry } from './RecordLine'
 import { VedicChart } from './VedicChart'
+import { chartTime } from '../lib/format'
 
 // 时辰不详时按正午暂排，上升、宫位与运限均以正午为准，页面另注明误差。
 const NOON = '12:00'
@@ -33,7 +34,7 @@ export function VeChartPage({
       {entry && (
         <VedicChart
           dob={entry.dob}
-          time={entry.time ?? NOON}
+          time={chartTime(entry.time, NOON)}
           place={`${entry.province}·${entry.city}`}
           lat={entry.lat}
           lon={entry.lon}
