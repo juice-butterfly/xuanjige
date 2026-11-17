@@ -1,7 +1,9 @@
 import { Chapter } from './Chapter'
-import { Ornament } from './Ornament'
 import { RecordLine, type RecordEntry } from './RecordLine'
 import { VedicChart } from './VedicChart'
+
+// 时辰不详时按正午暂排，上升、宫位与运限均以正午为准，页面另注明误差。
+const NOON = '12:00'
 
 export function VeChartPage({
   entry,
@@ -18,22 +20,20 @@ export function VeChartPage({
     <div className="chart-page chart-page--ve">
       <Chapter num="叁" kicker="卷 之 三" title="西式命盘" sub="恒星黄道，整宫为盘。" />
       <RecordLine entry={entry} onEdit={onEdit} onForm={onForm} />
-      <Ornament variant="ve" />
 
       {entry && !entry.time && (
-        <div className="chart-blocked">
-          <p className="chart-blocked-k">时辰不详</p>
-          <p className="chart-blocked-text">上升与宫位无从落定。补上出生时刻，星盘才完整。</p>
+        <p className="chart-caveat">
+          时辰不详：上升、宫位与运限按正午暂排，边界处或有出入。
           <button className="link" type="button" onClick={onEdit}>
             补录时辰
           </button>
-        </div>
+        </p>
       )}
 
-      {entry?.time && (
+      {entry && (
         <VedicChart
           dob={entry.dob}
-          time={entry.time}
+          time={entry.time ?? NOON}
           place={`${entry.province}·${entry.city}`}
           lat={entry.lat}
           lon={entry.lon}

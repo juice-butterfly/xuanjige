@@ -145,6 +145,7 @@ function isElement(v) {
 function validChart(c) {
   if (!c || typeof c !== 'object') return null;
   if (c.gender !== '男' && c.gender !== '女') return null;
+  if (c.time_estimated !== undefined && typeof c.time_estimated !== 'boolean') return null;
   const b = c.bazi;
   const v = c.vedic;
   if (!b || typeof b !== 'object' || !v || typeof v !== 'object') return null;
@@ -190,6 +191,9 @@ function chartBlock(chart) {
   const v = chart.vedic;
   const lines = [];
   lines.push(`性别：${chart.gender}`);
+  if (chart.time_estimated) {
+    lines.push('时辰：不详，时柱与上升、宫位按正午暂排；相关判断必须注明误差。');
+  }
   lines.push('——中式八字——');
   const pillars = b.pillars.filter(p => p.ganzhi).map(p => `${p.name} ${p.ganzhi}（${p.shi_shen_gan}）`);
   lines.push(`四柱：${pillars.join(' · ')}${b.pillars.length > pillars.length ? '（时柱不详）' : ''}`);

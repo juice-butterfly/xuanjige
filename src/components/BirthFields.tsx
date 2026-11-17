@@ -290,7 +290,7 @@ export function BirthFields({
           </span>
         </div>
         {value.timeUnknown && (
-          <p className="time-note">时辰不详 · 时柱与上升留白，不猜。</p>
+          <p className="time-note">时辰不详 · 盘面按正午暂排，准确性有限。</p>
         )}
       </div>
 

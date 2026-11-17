@@ -2785,6 +2785,19 @@ html[data-theme="day"] .wx-track {
 
 /* 时辰不详 */
 
+.chart-caveat {
+  margin: 12px 0 2px;
+  font-size: 12px;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  color: var(--site-muted);
+}
+
+.chart-caveat .link {
+  margin-left: 8px;
+  font-size: 12px;
+}
+
 .chart-blocked {
   margin-top: calc(22px * var(--site-space));
   padding: 30px 20px 26px;
@@ -4363,29 +4376,7 @@ html:has(dialog[open]) {
   }
 }
 
-/* ── R4 中西细化与纹样 ───────────────────── */
-
-.ornament {
-  margin: 16px 0 18px;
-  color: var(--gold-dim);
-  opacity: 0.55;
-  pointer-events: none;
-}
-
-.ornament svg {
-  display: block;
-  width: 100%;
-  height: 26px;
-}
-
-.ornament--ve svg {
-  height: 34px;
-}
-
-.ornament--form {
-  margin: 2px 0 0;
-  opacity: 0.45;
-}
+/* ── R4 中西细化 ─────────────────────────── */
 
 .form-layout {
   width: 100%;
@@ -4719,9 +4710,5 @@ html:has(dialog[open]) {
 @media (max-width: 540px) {
   .pillar-misc {
     font-size: 10px;
-  }
-
-  .ornament {
-    margin: 12px 0 14px;
   }
 }

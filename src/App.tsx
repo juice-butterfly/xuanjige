@@ -3,7 +3,7 @@ import { Chapter } from './components/Chapter'
 import { CnChartPage } from './components/CnChartPage'
 import { LogoMark } from './components/LogoMark'
 import { MasterScreen } from './components/MasterScreen'
-import { CompassArt, Ornament } from './components/Ornament'
+import { CompassArt } from './components/Ornament'
 import { PartnerDialog } from './components/PartnerDialog'
 import { VeChartPage } from './components/VeChartPage'
 import {
@@ -483,7 +483,6 @@ function App() {
             <div className="form-layout">
               <div className="form-main">
               <Chapter num="壹" kicker="卷 之 一" title="报上生辰" sub="以生辰为凭，以生地定经纬。所报不存姓名。" />
-              <Ornament variant="cn" className="ornament--form" />
               <form className="ledger ledger--grouped" onSubmit={handleSubmit} noValidate>
                 <section className="ledger-group">
                   <h2 className="ledger-group-k">生地</h2>
@@ -717,7 +716,7 @@ function App() {
                         </span>
                       </div>
                       {draft.timeUnknown && (
-                        <p className="time-note">时辰不详 · 时柱留白，先生不猜。</p>
+                        <p className="time-note">时辰不详 · 时柱与上升按正午暂排，仅供参考。</p>
                       )}
                     </div>
                   </div>

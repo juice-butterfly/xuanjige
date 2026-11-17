@@ -39,6 +39,7 @@ const PILLAR_CN = { year: '年', month: '月', day: '日', time: '时' } as cons
 // 与 Function 端 validChart 白名单一一对应的载荷；多余的盘面细节不外送。
 export type ChartPayload = {
   gender: '男' | '女'
+  time_estimated?: boolean
   bazi: {
     day_master: string
     day_master_element: string
@@ -65,6 +66,7 @@ export function buildChartPayload(
   bazi: BaziResult,
   vedic: VedicResult,
   gender: 'male' | 'female',
+  timeEstimated = false,
 ): ChartPayload {
   const order = SHEN_SHA_ORDER.filter((name) => bazi.shen_sha[name])
   const shenSha = order
@@ -78,6 +80,7 @@ export function buildChartPayload(
     : '运限未定'
   return {
     gender: gender === 'male' ? '男' : '女',
+    ...(timeEstimated ? { time_estimated: true } : {}),
     bazi: {
       day_master: bazi.day_master,
       day_master_element: bazi.day_master_element,

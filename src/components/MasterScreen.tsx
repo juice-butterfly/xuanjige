@@ -56,6 +56,8 @@ const STOP_NOTE = '已止。半截的话，作半截听。'
 
 const TIMING_KEY = 'xuanjige.master.timing.v1'
 const DIAG = new URLSearchParams(window.location.search).get('diag') === '1'
+// 时辰不详时按正午暂排，盘面与先生都注明误差。
+const NOON = '12:00'
 
 type TimingRecord = {
   at: string
@@ -223,9 +225,9 @@ export function MasterScreen({
   const partnerCache = useRef(new Map<string, VedicResult>())
 
   const bazi = useMemo(() => {
-    if (!entry || !entry.time) return null
+    if (!entry) return null
     const [year, month, day] = entry.dob.split('-').map(Number)
-    const [hour, minute] = entry.time.split(':').map(Number)
+    const [hour, minute] = (entry.time ?? NOON).split(':').map(Number)
     return calcBazi(
       year,
       month,
@@ -247,8 +249,8 @@ export function MasterScreen({
   )
 
   useEffect(() => {
-    if (!entry || !entry.time) return
-    const time = entry.time
+    if (!entry) return
+    const time = entry.time ?? NOON
     let alive = true
     setVedic({ status: 'loading' })
     import('../engine/vedic')
@@ -376,7 +378,7 @@ export function MasterScreen({
       }, 0)
       return () => window.clearTimeout(timer)
     }
-    if (!entry || !entry.time || !bazi || vedic.status !== 'ready') return
+    if (!entry || !bazi || vedic.status !== 'ready') return
     const timer = window.setTimeout(() => {
       intentRan.current = intent
       startRun(intent)
@@ -427,7 +429,7 @@ export function MasterScreen({
     const token = ++runSeq.current
     const ctrl = new AbortController()
     abortRef.current = ctrl
-    const payload = buildChartPayload(bazi, vedic.data, entry.gender)
+    const payload = buildChartPayload(bazi, vedic.data, entry.gender, !entry.time)
     const session = sessionRef.current
     setRun({ phase: 'busy', mode, text: '', asked: question })
     setRunKey((key) => key + 1)
@@ -542,21 +544,17 @@ export function MasterScreen({
     abortRef.current?.abort()
   }
 
-  if (!entry || !entry.time) {
+  if (!entry) {
     return (
       <>
         <Chapter num="肆" kicker="卷 之 四" title="玄机先生" sub="先生不言吉凶，只按盘说话。" />
         <div className="master-note">
-          <p className="master-lead">
-            {!entry ? '尚未报上生辰，先生尚未开卷。' : '时辰不详，先生不开卷。'}
-          </p>
+          <p className="master-lead">尚未报上生辰，先生尚未开卷。</p>
           <p className="master-sub">
-            {!entry
-              ? '先报生辰，先生才好按盘说话；六方向，每条附依据。'
-              : '四柱缺一，合参无从对起。补上出生时刻，先生才好开口。'}
+            先报生辰，先生才好按盘说话；六方向，每条附依据。
           </p>
-          <button className="link" type="button" onClick={entry ? onEdit : onForm}>
-            {!entry ? '去报生辰' : '补录时辰'}
+          <button className="link" type="button" onClick={onForm}>
+            去报生辰
           </button>
         </div>
         <p className="screen-note">本页只陈六方向，不判生死，不承诺财运。</p>
@@ -600,6 +598,15 @@ export function MasterScreen({
           </div>
         )}
       </div>
+
+      {!entry.time && (
+        <p className="chart-caveat">
+          时辰不详：时柱、上升与宫位按正午暂排，先生的话仅供参考。
+          <button className="link" type="button" onClick={onEdit}>
+            补录时辰
+          </button>
+        </p>
+      )}
 
       <div className="master-live">
         <div className="master-top">
