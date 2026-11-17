@@ -8,16 +8,18 @@ export type Relation =
   | 'partner'
   | 'crush'
   | 'family'
-  | 'stranger'
+  | 'teacher'
   | 'classmate'
+  | 'boss'
 
 export const RELATIONS: { id: Relation; label: string }[] = [
   { id: 'friend', label: '朋友' },
   { id: 'partner', label: '情侣' },
-  { id: 'crush', label: '有好感的人' },
+  { id: 'crush', label: '暧昧对象' },
   { id: 'family', label: '亲人' },
-  { id: 'stranger', label: '陌生人' },
+  { id: 'teacher', label: '师生' },
   { id: 'classmate', label: '同学' },
+  { id: 'boss', label: '上下属' },
 ]
 
 export function relationLabel(relation: Relation | null): string {

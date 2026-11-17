@@ -137,10 +137,10 @@ with sync_playwright() as p:
     print("legacy no-relation block:", page.locator(".master-partner-block").inner_text().replace("\n", " / "))
 
     page.select_option(".master-partner-select", "p-legacy-b")
-    print("legacy no-time block:", page.locator(".master-partner-block").inner_text().replace("\n", " / "))
+    print("legacy no-time hint:", page.locator(".master-partner-hint").first.inner_text().replace("\n", " / "))
     print("no-time cta count:", page.locator(".master-mode-panel .master-merge").count())
 
-    page.select_option(".master-partner-select", label="阿青（有好感的人）")
+    page.select_option(".master-partner-select", label="阿青（暧昧对象）")
     page.wait_for_selector(".master-mode-panel .master-merge:not([disabled])")
     print("ready cta:", page.locator(".master-mode-panel .master-merge").inner_text())
     print("overflow legacy 390:", overflow(page))
