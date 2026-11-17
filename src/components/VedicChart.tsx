@@ -115,8 +115,20 @@ function VedicBody({ data }: { data: VedicResult }) {
     <>
       <header className="bazi-head">
         <div className="bazi-head-main">
-          <p className="bazi-lunar">恒星黄道 · 整宫十二宫</p>
+          <p className="bazi-lunar">恒星黄道 · 整宫十二宫 · 与日常星座约差一宫</p>
           <p className="bazi-meta">
+            <span>
+              <Term name="太阳" className="term--inline">
+                太阳
+              </Term>{' '}
+              {data.planets[0].sign_cn} {data.planets[0].degree}
+            </span>
+            <span>
+              <Term name="月亮" className="term--inline">
+                月亮
+              </Term>{' '}
+              {data.planets[1].sign_cn} {data.planets[1].degree}
+            </span>
             <span>月相 {data.moon_phase ? '盈' : '亏'}</span>
             <span>
               <Term name="九曜" className="term--inline">
@@ -138,7 +150,21 @@ function VedicBody({ data }: { data: VedicResult }) {
           </g>
           <text
             x="110"
-            y="105"
+            y="91"
+            fill="currentColor"
+            textAnchor="middle"
+            style={{
+              fontFamily: 'var(--font-kai), serif',
+              fontSize: 9,
+              letterSpacing: '0.22em',
+              opacity: 0.95,
+            }}
+          >
+            上升
+          </text>
+          <text
+            x="110"
+            y="110"
             fill="currentColor"
             textAnchor="middle"
             style={{ fontFamily: 'var(--font-kai), serif', fontSize: 19, letterSpacing: '0.12em' }}
@@ -147,12 +173,12 @@ function VedicBody({ data }: { data: VedicResult }) {
           </text>
           <text
             x="110"
-            y="123"
+            y="127"
             fill="currentColor"
             textAnchor="middle"
             style={{ fontFamily: 'var(--font-kai), serif', fontSize: 8.5, letterSpacing: '0.1em' }}
           >
-            {data.moon_nakshatra.name} · {data.moon_nakshatra.pada}
+            月宿 {data.moon_nakshatra.name} · {data.moon_nakshatra.pada}
           </text>
           {RING_GLYPHS.map((glyph, index) => {
             const angle = (index * Math.PI) / 6 - Math.PI / 2
@@ -271,7 +297,7 @@ function VedicBody({ data }: { data: VedicResult }) {
           </div>
 
           <p className="vedic-note">
-            罗睺计都恒逆行；度数为恒星黄道位置。四正宫为一、四、七、十。
+            罗睺计都恒逆行；度数为恒星黄道位置。盘中大字为上升星座，非太阳星座；太阳以页首一行为准。四正宫为一、四、七、十。
           </p>
         </div>
 
@@ -351,7 +377,7 @@ function VedicSkeleton() {
     <>
       <header className="bazi-head">
         <div className="bazi-head-main">
-          <p className="bazi-lunar">恒星黄道 · 整宫十二宫</p>
+          <p className="bazi-lunar">恒星黄道 · 整宫十二宫 · 与日常星座约差一宫</p>
         </div>
         <p className="bazi-hint">星历载入中…</p>
       </header>
