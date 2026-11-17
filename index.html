@@ -31,11 +31,363 @@
           .querySelector('meta[name="theme-color"]')
           ?.setAttribute('content', night ? '#15140F' : '#FBF8F0')
       } catch (e) {}
+      try {
+        if (sessionStorage.getItem('xuanjige.boot.v1')) {
+          document.documentElement.classList.add('boot-skip')
+        } else {
+          sessionStorage.setItem('xuanjige.boot.v1', '1')
+        }
+      } catch (e) {}
     </script>
     <title>天机阁 · 中西合参命盘</title>
+    <style>
+      #boot {
+        --b-paper: #15140f;
+        --b-ink: #efe7d8;
+        --b-muted: #a89c88;
+        --b-gold: #d8b45a;
+        --b-line: rgba(216, 180, 90, 0.28);
+        --b-line-soft: rgba(216, 180, 90, 0.13);
+        --b-glow: rgba(216, 180, 90, 0.07);
+        --b-wash: #8d8676;
+        --b-grain: 0.03;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background: var(--b-paper);
+        color: var(--b-ink);
+        font-family: "Kaiti SC", "STKaiti", "KaiTi", "Kaiti TC", "Songti SC", "SimSun", serif;
+        -webkit-font-smoothing: antialiased;
+        transition: opacity 0.55s ease, filter 0.55s ease, transform 0.8s ease;
+      }
+      html[data-theme="day"] #boot {
+        --b-paper: #fbf8f0;
+        --b-ink: #2b2117;
+        --b-muted: #6b5b47;
+        --b-gold: #755b14;
+        --b-line: rgba(122, 92, 22, 0.26);
+        --b-line-soft: rgba(122, 92, 22, 0.13);
+        --b-glow: rgba(255, 253, 246, 0.92);
+        --b-wash: #2b2117;
+        --b-grain: 0.045;
+      }
+      html.boot-skip #boot {
+        display: none;
+      }
+      #boot.is-leaving {
+        opacity: 0;
+        filter: blur(6px);
+        transform: scale(1.015);
+      }
+      #boot::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(900px 520px at 50% -10%, var(--b-glow), transparent 64%);
+      }
+      #boot::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: var(--b-grain);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
+      }
+      #boot svg {
+        display: block;
+      }
+      .boot-mountain {
+        position: absolute;
+        left: -2%;
+        right: -2%;
+        bottom: 0;
+        height: 34vh;
+        color: var(--b-wash);
+        opacity: 0;
+        transform: translateY(16px);
+        animation: bootMountain 2s cubic-bezier(0.2, 0.6, 0.2, 1) 0.15s forwards;
+        pointer-events: none;
+      }
+      .boot-mountain svg {
+        width: 100%;
+        height: 100%;
+        filter: blur(5px);
+      }
+      .boot-stage {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        place-items: center;
+      }
+      .boot-dial {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: min(64vmin, 430px);
+        aspect-ratio: 1;
+      }
+      .boot-dial > svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      .boot-fade {
+        opacity: 0;
+        animation: bootFade 1.2s ease 0.1s forwards;
+      }
+      .boot-spin {
+        transform-origin: 200px 200px;
+        animation: bootSpin 44s linear infinite;
+      }
+      .boot-spin-rev {
+        transform-origin: 200px 200px;
+        animation: bootSpin 26s linear infinite reverse;
+      }
+      .boot-arc {
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        animation: bootArc 2.3s cubic-bezier(0.33, 0.08, 0.18, 1) forwards;
+      }
+      .boot-copy {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+      .boot-title {
+        font-size: clamp(24px, 4.4vw, 34px);
+        line-height: 1;
+        letter-spacing: 0.3em;
+        padding-left: 0.3em;
+        opacity: 0;
+        transform: translateY(8px);
+        animation: bootRise 0.9s cubic-bezier(0.2, 0.6, 0.2, 1) 0.42s forwards;
+      }
+      .boot-rule {
+        width: 0;
+        height: 1px;
+        margin: 19px auto 0;
+        background: var(--b-gold);
+        opacity: 0.8;
+        animation: bootRule 1s cubic-bezier(0.3, 0.6, 0.2, 1) 0.86s forwards;
+      }
+      .boot-sub {
+        margin-top: 16px;
+        font-family: "Songti SC", "STSong", "SimSun", serif;
+        font-size: 10.5px;
+        letter-spacing: 0.42em;
+        padding-left: 0.42em;
+        color: var(--b-muted);
+        opacity: 0;
+        transform: translateY(6px);
+        animation: bootRise 0.9s cubic-bezier(0.2, 0.6, 0.2, 1) 1.02s forwards;
+      }
+      .boot-steps {
+        position: absolute;
+        z-index: 3;
+        left: 0;
+        right: 0;
+        bottom: 11vh;
+        display: flex;
+        justify-content: center;
+        gap: 26px;
+        font-family: "Songti SC", "STSong", "SimSun", serif;
+        font-size: 10px;
+        letter-spacing: 0.46em;
+        color: var(--b-muted);
+        pointer-events: none;
+      }
+      .boot-steps span {
+        opacity: 0;
+      }
+      .boot-steps span:nth-child(1) {
+        animation: bootStep 0.5s ease 0.55s forwards;
+      }
+      .boot-steps span:nth-child(2) {
+        animation: bootStep 0.5s ease 1.15s forwards;
+      }
+      .boot-steps span:nth-child(3) {
+        animation: bootStep 0.5s ease 1.7s forwards;
+      }
+      @keyframes bootFade {
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes bootSpin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes bootArc {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes bootMountain {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes bootRise {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes bootRule {
+        to {
+          width: 56px;
+        }
+      }
+      @keyframes bootStep {
+        to {
+          opacity: 0.8;
+        }
+      }
+      @media (max-width: 520px) {
+        .boot-steps {
+          gap: 16px;
+          font-size: 9px;
+          bottom: 8vh;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot * {
+          animation-duration: 0.01ms !important;
+          animation-delay: 0ms !important;
+        }
+        #boot {
+          transition-duration: 0.2s;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="boot" role="status" aria-label="天机阁，正在起盘">
+      <div class="boot-mountain">
+        <svg viewBox="0 0 1440 360" preserveAspectRatio="none">
+          <path d="M0,258 C180,208 262,232 382,200 C520,164 640,206 760,190 C900,171 1000,212 1140,188 C1260,170 1352,202 1440,182 L1440,360 L0,360 Z" fill="currentColor" opacity=".05"/>
+          <path d="M0,300 C160,264 282,286 420,258 C560,231 700,272 840,250 C980,229 1120,270 1260,246 C1332,234 1392,252 1440,242 L1440,360 L0,360 Z" fill="currentColor" opacity=".075"/>
+          <path d="M0,334 C200,316 360,332 540,316 C720,301 880,332 1060,318 C1222,307 1342,326 1440,314 L1440,360 L0,360 Z" fill="currentColor" opacity=".1"/>
+        </svg>
+      </div>
+      <div class="boot-stage">
+        <div class="boot-dial">
+          <svg viewBox="0 0 400 400" aria-hidden="true">
+            <g class="boot-fade">
+              <circle cx="200" cy="200" r="174" fill="none" stroke="var(--b-line)" stroke-width="1"/>
+              <circle cx="200" cy="200" r="150" fill="none" stroke="var(--b-line-soft)" stroke-width="1"/>
+              <g class="boot-spin">
+                <g stroke="var(--b-line)" stroke-width="1">
+                  <line x1="200" y1="26" x2="200" y2="38"/>
+                  <line x1="200" y1="362" x2="200" y2="374"/>
+                  <line x1="26" y1="200" x2="38" y2="200"/>
+                  <line x1="362" y1="200" x2="374" y2="200"/>
+                  <g transform="rotate(45 200 200)"><line x1="200" y1="26" x2="200" y2="38"/><line x1="200" y1="362" x2="200" y2="374"/><line x1="26" y1="200" x2="38" y2="200"/><line x1="362" y1="200" x2="374" y2="200"/></g>
+                  <g transform="rotate(22.5 200 200)" opacity=".55"><line x1="200" y1="26" x2="200" y2="33"/><line x1="200" y1="367" x2="200" y2="374"/><line x1="26" y1="200" x2="33" y2="200"/><line x1="367" y1="200" x2="374" y2="200"/></g>
+                  <g transform="rotate(67.5 200 200)" opacity=".55"><line x1="200" y1="26" x2="200" y2="33"/><line x1="200" y1="367" x2="200" y2="374"/><line x1="26" y1="200" x2="33" y2="200"/><line x1="367" y1="200" x2="374" y2="200"/></g>
+                </g>
+                <g fill="none" stroke="var(--b-ink)" stroke-width="1.4" opacity=".72">
+                  <g transform="rotate(0 200 200) translate(200 66)">
+                    <line x1="-7" y1="-6" x2="7" y2="-6"/><line x1="-7" y1="0" x2="7" y2="0"/><line x1="-7" y1="6" x2="7" y2="6"/>
+                  </g>
+                  <g transform="rotate(45 200 200) translate(200 66)">
+                    <line x1="-7" y1="-6" x2="7" y2="-6"/><line x1="-7" y1="0" x2="7" y2="0"/><line x1="-7" y1="6" x2="-1.5" y2="6"/><line x1="1.5" y1="6" x2="7" y2="6"/>
+                  </g>
+                  <g transform="rotate(90 200 200) translate(200 66)">
+                    <line x1="-7" y1="-6" x2="7" y2="-6"/><line x1="-7" y1="0" x2="-1.5" y2="0"/><line x1="1.5" y1="0" x2="7" y2="0"/><line x1="-7" y1="6" x2="7" y2="6"/>
+                  </g>
+                  <g transform="rotate(135 200 200) translate(200 66)">
+                    <line x1="-7" y1="-6" x2="7" y2="-6"/><line x1="-7" y1="0" x2="-1.5" y2="0"/><line x1="1.5" y1="0" x2="7" y2="0"/><line x1="-7" y1="6" x2="-1.5" y2="6"/><line x1="1.5" y1="6" x2="7" y2="6"/>
+                  </g>
+                  <g transform="rotate(180 200 200) translate(200 66)">
+                    <line x1="-7" y1="-6" x2="-1.5" y2="-6"/><line x1="1.5" y1="-6" x2="7" y2="-6"/><line x1="-7" y1="0" x2="7" y2="0"/><line x1="-7" y1="6" x2="7" y2="6"/>
+                  </g>
+                  <g transform="rotate(225 200 200) translate(200 66)">
+                    <line x1="-7" y1="-6" x2="-1.5" y2="-6"/><line x1="1.5" y1="-6" x2="7" y2="-6"/><line x1="-7" y1="0" x2="-1.5" y2="0"/><line x1="1.5" y1="0" x2="7" y2="0"/><line x1="-7" y1="6" x2="7" y2="6"/>
+                  </g>
+                  <g transform="rotate(270 200 200) translate(200 66)">
+                    <line x1="-7" y1="-6" x2="-1.5" y2="-6"/><line x1="1.5" y1="-6" x2="7" y2="-6"/><line x1="-7" y1="0" x2="-1.5" y2="0"/><line x1="1.5" y1="0" x2="7" y2="0"/><line x1="-7" y1="6" x2="-1.5" y2="6"/><line x1="1.5" y1="6" x2="7" y2="6"/>
+                  </g>
+                  <g transform="rotate(315 200 200) translate(200 66)">
+                    <line x1="-7" y1="-6" x2="-1.5" y2="-6"/><line x1="1.5" y1="-6" x2="7" y2="-6"/><line x1="-7" y1="0" x2="7" y2="0"/><line x1="-7" y1="6" x2="-1.5" y2="6"/><line x1="1.5" y1="6" x2="7" y2="6"/>
+                  </g>
+                </g>
+              </g>
+              <circle cx="200" cy="200" r="160" fill="none" stroke="var(--b-line-soft)" stroke-width="1"/>
+              <circle class="boot-arc" cx="200" cy="200" r="174" pathLength="100" fill="none" stroke="var(--b-gold)" stroke-width="1.6" transform="rotate(-90 200 200)"/>
+            </g>
+          </svg>
+          <div class="boot-copy">
+            <div>
+              <div class="boot-title">天机阁</div>
+              <div class="boot-rule"></div>
+              <div class="boot-sub">观象授时 · 中西合参</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="boot-steps" aria-hidden="true"><span>观 象</span><span>定 时</span><span>起 盘</span></div>
+    </div>
     <div id="root"></div>
+    <script>
+      (function () {
+        var html = document.documentElement
+        var boot = document.getElementById('boot')
+        if (!boot) return
+        if (html.classList.contains('boot-skip')) {
+          boot.remove()
+          return
+        }
+        var root = document.getElementById('root')
+        if (root) root.setAttribute('inert', '')
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        var hold = reduce ? 900 : 2450
+        var minPassed = false
+        var appReady = false
+        var finished = false
+        var minTimer = window.setTimeout(function () {
+          minPassed = true
+          maybeFinish()
+        }, hold)
+        var maxTimer = window.setTimeout(finish, hold + 2000)
+        function maybeFinish() {
+          if (minPassed && appReady) finish()
+        }
+        function finish() {
+          if (finished) return
+          finished = true
+          window.clearTimeout(minTimer)
+          window.clearTimeout(maxTimer)
+          boot.classList.add('is-leaving')
+          if (root) root.removeAttribute('inert')
+          window.setTimeout(function () {
+            boot.remove()
+          }, 620)
+        }
+        window.addEventListener('xuanjige:ready', function () {
+          appReady = true
+          maybeFinish()
+        })
+        function skip() {
+          window.clearTimeout(minTimer)
+          finish()
+        }
+        window.addEventListener('pointerdown', skip, { once: true, passive: true })
+        window.addEventListener('keydown', skip, { once: true })
+        window.addEventListener('wheel', skip, { once: true, passive: true })
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

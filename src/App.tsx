@@ -243,6 +243,10 @@ function App() {
   }, [screen])
 
   useEffect(() => {
+    window.dispatchEvent(new Event('xuanjige:ready'))
+  }, [])
+
+  useEffect(() => {
     if (!tabInk || tabInkOn) return
     const timer = window.setTimeout(() => setTabInkOn(true), 60)
     return () => window.clearTimeout(timer)
